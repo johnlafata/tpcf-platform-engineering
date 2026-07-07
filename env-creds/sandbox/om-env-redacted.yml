@@ -1,0 +1,7 @@
+# om-env.yml
+target: https://<sandbox-opsmgr-url>
+username: <sandbox-opsmgr-username>
+password: <sandbox-opsmgr-password> 
+client-id: <sandbox-opsmgr-client-id>
+client-secret: <sandbox-opsmgr-client-secret>
+skip-ssl-validation: true

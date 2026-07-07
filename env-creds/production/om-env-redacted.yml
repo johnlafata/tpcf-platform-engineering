@@ -1,0 +1,6 @@
+# om-env.yml
+target: https://<prod-opsmgr-url>
+username: <prod-opsmgr-username>
+password: <prod-opsmgr-password> 
+client-id: <prod-opsmgr-client-id>
+client-secret: <prod-opsmgr-client-secret>

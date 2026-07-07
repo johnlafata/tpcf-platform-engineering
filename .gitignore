@@ -1,0 +1,32 @@
+# Configuration backups
+# config-backup/
+
+# Extracted configurations (contains credentials)
+# config-export/
+
+# Sensitive files
+*-secrets.yml
+*.pem
+*.key
+*.crt
+
+# IDE and editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Old folders (keeping for reference, not committing changes)
+sandbox-backup/
+
+# Temporary files
+*.tmp
+*.log
+
+**/*.pivotal
+downloaded-products/**
