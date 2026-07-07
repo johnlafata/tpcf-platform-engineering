@@ -23,4 +23,6 @@ DNS.3 = *.sys.sbx.<your-domain>
 DNS.4 = *.apps.sbx.<your-domain>
 DNS.5 = *.uaa.sys.sbx.<your-domain>
 DNS.6 = *.login.sys.sbx.<your-domain>
-DNS.7 = opsmgr-sbx.<your-domain>
+DNS.7 = uaa.sys.sbx.<your-domain>
+DNS.8 = login.sys.sbx.<your-domain>
+DNS.9 = opsmgr-sbx.<your-domain>

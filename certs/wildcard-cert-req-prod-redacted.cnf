@@ -22,4 +22,6 @@ DNS.2 = *.sys.<your-domain>
 DNS.3 = *.cfapps.<your-domain>
 DNS.4 = *.uaa.sys.<your-domain>
 DNS.5 = *.login.sys.<your-domain>
-DNS.6 = opsmgr-prod.<your-domain>
+DNS.6 = uaa.sys.<your-domain>
+DNS.7 = login.sys.<your-domain>
+DNS.8 = opsmgr-prod.<your-domain>
