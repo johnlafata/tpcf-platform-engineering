@@ -31,4 +31,4 @@ sandbox-backup/
 **/*.pivotal
 downloaded-products/**
 
-certs/complete*.cnf
+certs/completed*.cnf
