@@ -1,0 +1,44 @@
+enable-delete-isolation-segments: false
+enable-unassign-security-groups: false
+skip-unassign-security-group-regex: ""
+running-security-groups:
+- default_security_group
+staging-security-groups:
+- default_security_group
+shared-domains:
+  apps.agi-explorer.com:
+    internal: false
+  apps.internal:
+    internal: true
+enable-remove-shared-domains: true
+metadata-prefix: cf-mgmt.pivotal.io
+use-metadata-prefix: true
+enable-service-access: true
+ignore-legacy-service-access: false
+service-access:
+- broker: smbbroker
+  services:
+  - service: smb
+    all_access_plans:
+    - Existing
+- broker: blockstoragebroker
+  services:
+  - service: block-storage
+    no_access_plans:
+    - on-demand-1024
+- broker: xf-service-broker
+  services:
+  - service: xf-service
+    all_access_plans:
+    - default
+- broker: app-autoscaler
+  services:
+  - service: app-autoscaler
+    all_access_plans:
+    - standard
+- broker: nfsbroker
+  services:
+  - service: nfs
+    no_access_plans:
+    - Existing
+protected-users: []

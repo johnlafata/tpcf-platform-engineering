@@ -1,0 +1,12 @@
+org: system
+spaces:
+- smoke-test
+- system
+- notifications-with-ui
+- autoscaling
+- nfs
+- smb
+- block-storage
+- tanzu-hub-collector
+- test
+enable-delete-spaces: true
