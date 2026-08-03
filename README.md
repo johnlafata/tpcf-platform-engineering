@@ -57,6 +57,7 @@ Get started with setting up your jumphost and deploying your first foundation.
 
 - **[Getting Started Guide](docs/installation/GETTING-STARTED.md)** - Complete end-to-end workflow from jumphost setup through first deployment (includes detailed CLI tool installation for Windows, Mac, and Linux)
 - **[Variables Collection Checklist](docs/installation/VARIABLES-CHECKLIST.md)** - Systematic worksheet to collect all required variables for your environment
+- **[cf-mgmt Installation Notes](docs/installation/CF-MGMT-INSTALLATION.md)** - Installing cf-mgmt and bootstrapping its config, for declarative org/space/user/ASG management once a foundation is up
 
 ### ⚙️ Operations & Maintenance
 
@@ -98,6 +99,8 @@ tpcf-platform-automation/
 │
 ├── docs/                     # Documentation
 │   └── installation/         # Setup and installation guides
+│       ├── GETTING-STARTED.md
+│       └── CF-MGMT-INSTALLATION.md       # cf-mgmt install + config bootstrap
 │
 ├── config-backup/            # Automated backups (gitignored)
 │
@@ -125,6 +128,7 @@ These tools are required on your jumphost to run the automation scripts.
 3. **jq** - JSON processing (used by scripts)
 4. **git** - Version control (required if managing configs in source control)
 5. **UAAC** - UAA client for user management
+6. **cf-mgmt** - Declarative org/space/user/ASG management (post-deployment) - see [cf-mgmt Installation Notes](docs/installation/CF-MGMT-INSTALLATION.md)
 
 ---
 
