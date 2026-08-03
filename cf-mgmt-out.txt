@@ -1,53 +1,69 @@
-cf-mgmt export-config --system-domain sys.agi-explorer.com --user-id cf-mgmt --client-secret newsecret --config-dir=cf-mgmt-config\production >cf-mgmt-out.txt
-2026/08/03 09:36:27 I0803 09:36:27.81774 2808 export_config.go:49] Orgs excluded from export by default: [^system$ splunk-nozzle-org redis-test-ORG appdynamics-org credhub-service-broker-org ^p-]
-2026/08/03 09:36:27 I0803 09:36:27.81774 2808 export_config.go:50] Orgs excluded from export by user:  []
-2026/08/03 09:36:27 I0803 09:36:27.81774 2808 export_config.go:51] Spaces excluded from export by user:  []
-2026/08/03 09:36:28 I0803 09:36:28.463105 2808 exportconfig.go:147] Trying to delete existing config directory
-2026/08/03 09:36:28 I0803 09:36:28.466922 2808 yaml_config.go:523] Config directory deleted
-2026/08/03 09:36:28 I0803 09:36:28.467056 2808 exportconfig.go:154] Trying to create new config folder
-2026/08/03 09:36:28 I0803 09:36:28.467056 2808 exportconfig.go:163] Using UAA user origin: uaa
-2026/08/03 09:36:28 I0803 09:36:28.468167 2808 yaml_config.go:454] Config directory cf-mgmt-config\production created
-2026/08/03 09:36:28 I0803 09:36:28.468717 2808 yaml_config.go:464] ASG directory cf-mgmt-config\production/asgs created
-2026/08/03 09:36:28 I0803 09:36:28.469293 2808 yaml_config.go:474] ASG directory cf-mgmt-config\production/default_asgs created
-2026/08/03 09:36:28 I0803 09:36:28.470375 2808 yaml_config.go:484] OrgQuotas directory cf-mgmt-config\production/org_quotas created
-2026/08/03 09:36:29 I0803 09:36:29.540971 2808 exportconfig.go:191] Processing org: system
-2026/08/03 09:36:30 I0803 09:36:30.463523 2808 yaml_config.go:228] Adding org: system
-2026/08/03 09:36:30 I0803 09:36:30.46457 2808 exportconfig.go:268] Done creating org system
-2026/08/03 09:36:30 I0803 09:36:30.465074 2808 exportconfig.go:363] Listing spaces for org system
-2026/08/03 09:36:30 I0803 09:36:30.550351 2808 exportconfig.go:365] Found 9 Spaces for org system
-2026/08/03 09:36:30 I0803 09:36:30.581793 2808 exportconfig.go:400] Processing space: smoke-test
-2026/08/03 09:36:31 I0803 09:36:31.46923 2808 yaml_config.go:292] Adding space: smoke-test
-2026/08/03 09:36:31 I0803 09:36:31.470319 2808 exportconfig.go:400] Processing space: system
-2026/08/03 09:36:31 I0803 09:36:31.652915 2808 yaml_config.go:292] Adding space: system
-2026/08/03 09:36:31 I0803 09:36:31.654053 2808 exportconfig.go:400] Processing space: notifications-with-ui
-2026/08/03 09:36:31 I0803 09:36:31.819144 2808 yaml_config.go:292] Adding space: notifications-with-ui
-2026/08/03 09:36:31 I0803 09:36:31.820285 2808 exportconfig.go:400] Processing space: autoscaling
-2026/08/03 09:36:32 I0803 09:36:32.135707 2808 yaml_config.go:292] Adding space: autoscaling
-2026/08/03 09:36:32 I0803 09:36:32.136224 2808 exportconfig.go:400] Processing space: nfs
-2026/08/03 09:36:32 I0803 09:36:32.286997 2808 exportconfig.go:466] Adding named security group [credhub_open] to space [nfs]
-2026/08/03 09:36:32 I0803 09:36:32.288671 2808 yaml_config.go:292] Adding space: nfs
-2026/08/03 09:36:32 I0803 09:36:32.28976 2808 exportconfig.go:400] Processing space: smb
-2026/08/03 09:36:32 I0803 09:36:32.570161 2808 exportconfig.go:466] Adding named security group [credhub_open] to space [smb]
-2026/08/03 09:36:32 I0803 09:36:32.571739 2808 yaml_config.go:292] Adding space: smb
-2026/08/03 09:36:32 I0803 09:36:32.573166 2808 exportconfig.go:400] Processing space: block-storage
-2026/08/03 09:36:32 I0803 09:36:32.965476 2808 exportconfig.go:466] Adding named security group [db_open] to space [block-storage]
-2026/08/03 09:36:32 I0803 09:36:32.967561 2808 yaml_config.go:292] Adding space: block-storage
-2026/08/03 09:36:32 I0803 09:36:32.968603 2808 exportconfig.go:400] Processing space: tanzu-hub-collector
-2026/08/03 09:36:33 I0803 09:36:33.338182 2808 yaml_config.go:292] Adding space: tanzu-hub-collector
-2026/08/03 09:36:33 I0803 09:36:33.339229 2808 exportconfig.go:400] Processing space: test
-2026/08/03 09:36:33 I0803 09:36:33.510702 2808 yaml_config.go:292] Adding space: test
-2026/08/03 09:36:33 I0803 09:36:33.511722 2808 exportconfig.go:278] Adding security group credhub_open
-2026/08/03 09:36:33 I0803 09:36:33.555974 2808 exportconfig.go:280] Adding rules for credhub_open
-2026/08/03 09:36:33 I0803 09:36:33.556481 2808 yaml_config.go:418] Writing out bytes for security group credhub_open
-2026/08/03 09:36:33 I0803 09:36:33.557761 2808 exportconfig.go:278] Adding security group db_open
-2026/08/03 09:36:33 I0803 09:36:33.593335 2808 exportconfig.go:280] Adding rules for db_open
-2026/08/03 09:36:33 I0803 09:36:33.593335 2808 yaml_config.go:418] Writing out bytes for security group db_open
-2026/08/03 09:36:33 I0803 09:36:33.594378 2808 exportconfig.go:288] Adding default security group default_security_group
-2026/08/03 09:36:33 I0803 09:36:33.64766 2808 exportconfig.go:296] Adding rules for default_security_group
-2026/08/03 09:36:33 I0803 09:36:33.64766 2808 yaml_config.go:424] Writing out bytes for security group default_security_group
-2026/08/03 09:36:33 I0803 09:36:33.702316 2808 yaml_config.go:429] Writing out orgQuota runaway
-2026/08/03 09:36:33 I0803 09:36:33.702839 2808 yaml_config.go:429] Writing out orgQuota default
-2026/08/03 09:36:33 I0803 09:36:33.703362 2808 exportconfig.go:329] Listing Shared Domains
-2026/08/03 09:36:33 I0803 09:36:33.764194 2808 exportconfig.go:337] Listing Router Groups
-2026/08/03 09:36:33 E0803 09:36:33.781452 2808 export_config.go:54] Export failed with error:  Getting routing groups: unauthorized
+C:\Users\johnl\tpcf-platform-engineering>uaac client delete cf-mgmt
+client registration deleted
+
+C:\Users\johnl\tpcf-platform-engineering>uaac client add cf-mgmt  --secret newsecret   --authorized_grant_types client_credentials   --authorities cloud_controller.admin,scim.read,scim.write,clients.read,clients.write,clients.secret,clients.admin,uaa.admin,routing.router-groups.read
+  scope: uaa.none
+  client_id: cf-mgmt
+  resource_ids: none
+  authorized_grant_types: client_credentials
+  autoapprove:
+  authorities: clients.read clients.secret routing.router-groups.read clients.write clients.admin uaa.admin scim.write
+      scim.read cloud_controller.admin
+  name: cf-mgmt
+  required_user_groups:
+  lastmodified: 1785776699000
+  id: cf-mgmt
+
+C:\Users\johnl\tpcf-platform-engineering>cf-mgmt export-config --system-domain sys.agi-explorer.com --user-id cf-mgmt --client-secret newsecret --config-dir=cf-mgmt-config\production
+2026/08/03 10:05:15 I0803 10:05:15.185624 7484 export_config.go:49] Orgs excluded from export by default: [^system$ splunk-nozzle-org redis-test-ORG appdynamics-org credhub-service-broker-org ^p-]
+2026/08/03 10:05:15 I0803 10:05:15.185624 7484 export_config.go:50] Orgs excluded from export by user:  []
+2026/08/03 10:05:15 I0803 10:05:15.186679 7484 export_config.go:51] Spaces excluded from export by user:  []
+2026/08/03 10:05:15 I0803 10:05:15.68864 7484 exportconfig.go:147] Trying to delete existing config directory
+2026/08/03 10:05:15 I0803 10:05:15.692283 7484 yaml_config.go:523] Config directory deleted
+2026/08/03 10:05:15 I0803 10:05:15.692805 7484 exportconfig.go:154] Trying to create new config folder
+2026/08/03 10:05:15 I0803 10:05:15.692805 7484 exportconfig.go:163] Using UAA user origin: uaa
+2026/08/03 10:05:15 I0803 10:05:15.693333 7484 yaml_config.go:454] Config directory cf-mgmt-config\production created
+2026/08/03 10:05:15 I0803 10:05:15.693852 7484 yaml_config.go:464] ASG directory cf-mgmt-config\production/asgs created
+2026/08/03 10:05:15 I0803 10:05:15.694374 7484 yaml_config.go:474] ASG directory cf-mgmt-config\production/default_asgs created
+2026/08/03 10:05:15 I0803 10:05:15.694374 7484 yaml_config.go:484] OrgQuotas directory cf-mgmt-config\production/org_quotas created
+2026/08/03 10:05:16 I0803 10:05:16.510045 7484 exportconfig.go:191] Processing org: system
+2026/08/03 10:05:17 I0803 10:05:17.076655 7484 yaml_config.go:228] Adding org: system
+2026/08/03 10:05:17 I0803 10:05:17.078292 7484 exportconfig.go:268] Done creating org system
+2026/08/03 10:05:17 I0803 10:05:17.078292 7484 exportconfig.go:363] Listing spaces for org system
+2026/08/03 10:05:17 I0803 10:05:17.171416 7484 exportconfig.go:365] Found 9 Spaces for org system
+2026/08/03 10:05:17 I0803 10:05:17.22685 7484 exportconfig.go:400] Processing space: smoke-test
+2026/08/03 10:05:18 I0803 10:05:18.021177 7484 yaml_config.go:292] Adding space: smoke-test
+2026/08/03 10:05:18 I0803 10:05:18.021694 7484 exportconfig.go:400] Processing space: system
+2026/08/03 10:05:18 I0803 10:05:18.140389 7484 yaml_config.go:292] Adding space: system
+2026/08/03 10:05:18 I0803 10:05:18.14091 7484 exportconfig.go:400] Processing space: notifications-with-ui
+2026/08/03 10:05:18 I0803 10:05:18.280367 7484 yaml_config.go:292] Adding space: notifications-with-ui
+2026/08/03 10:05:18 I0803 10:05:18.28192 7484 exportconfig.go:400] Processing space: autoscaling
+2026/08/03 10:05:18 I0803 10:05:18.386471 7484 yaml_config.go:292] Adding space: autoscaling
+2026/08/03 10:05:18 I0803 10:05:18.387544 7484 exportconfig.go:400] Processing space: nfs
+2026/08/03 10:05:18 I0803 10:05:18.507014 7484 exportconfig.go:466] Adding named security group [credhub_open] to space [nfs]
+2026/08/03 10:05:18 I0803 10:05:18.508598 7484 yaml_config.go:292] Adding space: nfs
+2026/08/03 10:05:18 I0803 10:05:18.509645 7484 exportconfig.go:400] Processing space: smb
+2026/08/03 10:05:18 I0803 10:05:18.645057 7484 exportconfig.go:466] Adding named security group [credhub_open] to space [smb]
+2026/08/03 10:05:18 I0803 10:05:18.646638 7484 yaml_config.go:292] Adding space: smb
+2026/08/03 10:05:18 I0803 10:05:18.64768 7484 exportconfig.go:400] Processing space: block-storage
+2026/08/03 10:05:18 I0803 10:05:18.75633 7484 exportconfig.go:466] Adding named security group [db_open] to space [block-storage]
+2026/08/03 10:05:18 I0803 10:05:18.75789 7484 yaml_config.go:292] Adding space: block-storage
+2026/08/03 10:05:18 I0803 10:05:18.758934 7484 exportconfig.go:400] Processing space: tanzu-hub-collector
+2026/08/03 10:05:18 I0803 10:05:18.875004 7484 yaml_config.go:292] Adding space: tanzu-hub-collector
+2026/08/03 10:05:18 I0803 10:05:18.876136 7484 exportconfig.go:400] Processing space: test
+2026/08/03 10:05:18 I0803 10:05:18.99669 7484 yaml_config.go:292] Adding space: test
+2026/08/03 10:05:18 I0803 10:05:18.998286 7484 exportconfig.go:278] Adding security group credhub_open
+2026/08/03 10:05:19 I0803 10:05:19.047311 7484 exportconfig.go:280] Adding rules for credhub_open
+2026/08/03 10:05:19 I0803 10:05:19.047311 7484 yaml_config.go:418] Writing out bytes for security group credhub_open
+2026/08/03 10:05:19 I0803 10:05:19.048414 7484 exportconfig.go:278] Adding security group db_open
+2026/08/03 10:05:19 I0803 10:05:19.102211 7484 exportconfig.go:280] Adding rules for db_open
+2026/08/03 10:05:19 I0803 10:05:19.102211 7484 yaml_config.go:418] Writing out bytes for security group db_open
+2026/08/03 10:05:19 I0803 10:05:19.103353 7484 exportconfig.go:288] Adding default security group default_security_group
+2026/08/03 10:05:19 I0803 10:05:19.14122 7484 exportconfig.go:296] Adding rules for default_security_group
+2026/08/03 10:05:19 I0803 10:05:19.14122 7484 yaml_config.go:424] Writing out bytes for security group default_security_group
+2026/08/03 10:05:19 I0803 10:05:19.189001 7484 yaml_config.go:429] Writing out orgQuota default
+2026/08/03 10:05:19 I0803 10:05:19.189582 7484 yaml_config.go:429] Writing out orgQuota runaway
+2026/08/03 10:05:19 I0803 10:05:19.190156 7484 exportconfig.go:329] Listing Shared Domains
+2026/08/03 10:05:19 I0803 10:05:19.233276 7484 exportconfig.go:337] Listing Router Groups
+2026/08/03 10:05:19 E0803 10:05:19.264492 7484 export_config.go:54] Export failed with error:  Getting routing groups: unauthorized
 error: Getting routing groups: unauthorized
