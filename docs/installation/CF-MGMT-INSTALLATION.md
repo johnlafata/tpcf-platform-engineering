@@ -69,8 +69,10 @@ uaac token client get admin -s ADMIN-CLIENT-SECRET
 REM Create a dedicated client for cf-mgmt
 uaac client add cf-mgmt --secret YOUR-SECRET ^
   --authorized_grant_types client_credentials ^
-  --authorities cloud_controller.admin,scim.read,scim.write,clients.read,clients.write,clients.secret,clients.admin,uaa.admin
+  --authorities cloud_controller.admin,scim.read,scim.write,clients.read,clients.write,clients.secret,clients.admin,uaa.admin,routing.router_groups.read
 ```
+
+`routing.router_groups.read` is easy to miss — it's not covered by `cloud_controller.admin`, but export-config needs it at the very end of the run to list TCP router groups. Without it, everything else (orgs, spaces, ASGs, quotas, shared domains) exports fine and the run only fails on that last step — see [Troubleshooting](#getting-routing-groups-unauthorized) below if you hit this after already creating the client.
 
 ## Bootstrap the Config Directory
 
@@ -160,6 +162,36 @@ E0803 09:19:11.955054 2444 export_config.go:21] Unable to initialize cf-mgmt. Er
 ```cmd
 echo enabled: false > cf-mgmt-config\production\ldap.yml
 ```
+
+### "Getting routing groups: unauthorized"
+
+```
+E0803 09:36:33.781452 2808 export_config.go:54] Export failed with error:  Getting routing groups: unauthorized
+error: Getting routing groups: unauthorized
+```
+
+**Cause:** this shows up at the very end of a run — orgs, spaces, named ASGs, quotas, and shared domains all export fine first, and only the last step (listing TCP router groups) fails. That's because `cloud_controller.admin` doesn't cover the Routing API; the client also needs `routing.router_groups.read`, which isn't in the authorities list further up in this doc until it's been added.
+
+**Fix:** add the missing scope to the existing client and pull a fresh token before re-running (note it's `uaac client update`, not `client add`, since the client already exists):
+
+```cmd
+uaac target https://uaa.SYSTEM-DOMAIN
+uaac token client get admin -s ADMIN-CLIENT-SECRET
+
+uaac client update cf-mgmt --authorities cloud_controller.admin,scim.read,scim.write,clients.read,clients.write,clients.secret,clients.admin,uaa.admin,routing.router_groups.read
+
+REM cf-mgmt gets its own token via client_credentials at run time, so no separate
+REM "uaac token client get cf-mgmt" step is needed — just re-run the export:
+cf-mgmt export-config --system-domain sys.SYSTEM-DOMAIN --user-id cf-mgmt --client-secret YOUR-SECRET --config-dir=cf-mgmt-config\production
+```
+
+If it still fails after updating authorities, double check the client actually picked up the change:
+
+```cmd
+uaac client get cf-mgmt
+```
+
+and confirm `routing.router_groups.read` appears in the `authorities` list returned.
 
 ## References
 
