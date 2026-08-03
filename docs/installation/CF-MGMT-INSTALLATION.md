@@ -72,29 +72,57 @@ uaac client add cf-mgmt --secret YOUR-SECRET ^
   --authorities cloud_controller.admin,scim.read,scim.write,clients.read,clients.write,clients.secret,clients.admin,uaa.admin
 ```
 
-Validate it:
-
-```cmd
-cf-mgmt org-report --system-domain SYSTEM-DOMAIN --user-id cf-mgmt --client-secret YOUR-SECRET
-```
-
-> **Note:** confirm the exact authority list against the current cf-mgmt Getting Started docs for the version installed — required scopes have changed across releases:
-> https://github.com/vmware-tanzu-labs/cf-mgmt/tree/main/docs
-
 ## Bootstrap the Config Directory
 
-cf-mgmt reads/writes a config folder per foundation, the same way `environments\<foundation>\` already holds this repo's OM/TAS vars files. A parallel `cf-mgmt-config\<foundation>\` folder keeps the two in sync without mixing them:
+cf-mgmt reads/writes a config folder per foundation, the same way `environments\<foundation>\` already holds this repo's OM/TAS vars files. A parallel `cf-mgmt-config\<foundation>\` folder keeps the two in sync without mixing them. Each folder needs the same `ldap.yml` stub used above before `export-config` will run against it:
 
 ```cmd
 mkdir cf-mgmt-config\sandbox
+echo enabled: false > cf-mgmt-config\sandbox\ldap.yml
+
 mkdir cf-mgmt-config\production
+echo enabled: false > cf-mgmt-config\production\ldap.yml
 ```
 
-Seed each from the foundation's current state, writing into the same `config-backup\` folder already used by `ops-scripts\backup-foundation-config.bat`, so all foundation backups — OM/TAS and cf-mgmt — live side by side:
+
+Validate it — `export-config` is read-only (it only reads the foundation's current state and writes files locally), so it's a safe way to confirm the client can authenticate and actually see the foundation, without touching anything. **cf-mgmt expects the config-dir to already contain a minimal `ldap.yml`** even when you're not using LDAP sync (this repo's setup authorizes users via `saml_group` references directly, per the org/space configuration guide) — create that stub first, or export-config fails with `Error reading file <config-dir>/ldap.yml: ... cannot find the file specified`:
+
+```cmd
+mkdir cf-mgmt-config\_client-check
+echo enabled: false > cf-mgmt-config\_client-check\ldap.yml
+
+cf-mgmt export-config ^
+  --config-dir=cf-mgmt-config\_client-check ^
+  --system-domain=SYSTEM-DOMAIN ^
+  --user-id=cf-mgmt ^
+  --client-secret=YOUR-SECRET
+```
+
+If the client works, this exits cleanly and populates `cf-mgmt-config\_client-check\` with `orgs.yml` and a folder per org — open `orgs.yml` and spot-check that it lists orgs you recognize on the foundation. Delete `cf-mgmt-config\_client-check\` afterward; the real export in [Bootstrap the Config Directory](#bootstrap-the-config-directory) below is what you'll actually keep.
+
+> **Note:** confirm the exact authority list, and the exact `ldap.yml` schema for a disabled/no-LDAP setup, against the current cf-mgmt docs for the version installed — both have changed across releases:
+> https://github.com/vmware-tanzu-labs/cf-mgmt/tree/main/docs
+
+
+# Seed `cf-mgmt-config\sandbox` directly from the foundation's current state:
 
 ```cmd
 cf-mgmt export-config ^
-  --config-dir=config-backup\sandbox-cf-mgmt-%DATE:~-4%%DATE:~4,2%%DATE:~7,2% ^
+  --config-dir=cf-mgmt-config\sandbox ^
+  --system-domain=SYSTEM-DOMAIN ^
+  --user-id=cf-mgmt ^
+  --client-secret=YOUR-SECRET
+```
+
+For a point-in-time backup instead — writing into the same `config-backup\` folder already used by `ops-scripts\backup-foundation-config.bat`, so all foundation backups (OM/TAS and cf-mgmt) live side by side — create the `ldap.yml` stub in the timestamped folder first, same as above:
+
+```cmd
+set BACKUP_DIR=config-backup\sandbox-cf-mgmt-%DATE:~-4%%DATE:~4,2%%DATE:~7,2%
+mkdir %BACKUP_DIR%
+echo enabled: false > %BACKUP_DIR%\ldap.yml
+
+cf-mgmt export-config ^
+  --config-dir=%BACKUP_DIR% ^
   --system-domain=SYSTEM-DOMAIN ^
   --user-id=cf-mgmt ^
   --client-secret=YOUR-SECRET
@@ -116,6 +144,22 @@ cf-mgmt apply ^
 ```
 
 `--peek` prints the changes cf-mgmt would make without applying them — confirm the diff is empty (or expected) before dropping the flag.
+
+## Troubleshooting
+
+### "Unable to initialize cf-mgmt" / "Error reading file ...ldap.yml"
+
+```
+E0803 09:19:11.955054 2444 export_config.go:21] Unable to initialize cf-mgmt. Error : Error reading file cf-mgmt-config\production/ldap.yml: open cf-mgmt-config\production/ldap.yml: The system cannot find the file specified.
+```
+
+**Cause:** cf-mgmt requires `ldap.yml` to already exist in `--config-dir` before `export-config` (or `apply`) will run, even if you don't use LDAP sync — it's not something either command creates for you.
+
+**Fix:** create a minimal disabled stub in that config-dir, then re-run:
+
+```cmd
+echo enabled: false > cf-mgmt-config\production\ldap.yml
+```
 
 ## References
 
