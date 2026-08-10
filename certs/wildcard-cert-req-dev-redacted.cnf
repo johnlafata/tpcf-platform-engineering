@@ -1,0 +1,28 @@
+[req]
+distinguished_name = req_distinguished_name
+req_extensions = v3_req
+prompt = no
+
+[req_distinguished_name]
+C = US
+ST = State
+L = City
+O = Organization
+OU = IT
+CN = *.dev.<your-domain>
+
+[v3_req]
+keyUsage = critical, digitalSignature, keyEncipherment
+extendedKeyUsage = serverAuth
+subjectAltName = @alt_names
+
+[alt_names]
+DNS.1 = *.<your-domain>
+DNS.2 = *.dev.<your-domain>
+DNS.3 = *.sys.dev.<your-domain>
+DNS.4 = *.apps.dev.<your-domain>
+DNS.5 = *.uaa.sys.dev.<your-domain>
+DNS.6 = *.login.sys.dev.<your-domain>
+DNS.7 = uaa.sys.dev.<your-domain>
+DNS.8 = login.sys.dev.<your-domain>
+DNS.9 = opsmgr-dev.<your-domain>
