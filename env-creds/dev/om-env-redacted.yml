@@ -1,0 +1,6 @@
+# om-env.yml
+target: https://<dev-opsmgr-url>
+username: <dev-opsmgr-username>
+password: <dev-opsmgr-password> 
+client-id: <dev-opsmgr-client-id>
+client-secret: <dev-opsmgr-client-secret>
