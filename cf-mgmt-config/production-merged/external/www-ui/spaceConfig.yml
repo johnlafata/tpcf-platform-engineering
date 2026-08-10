@@ -1,0 +1,11 @@
+org: external
+space: www-ui
+space-developer:
+  users:
+  - jenkins-sa
+space-auditor:
+  saml_group:
+  - entra-id-platform-users        # TODO: confirm actual Entra ID group name
+isolation-segment: isolated-segment
+enable-security-group: false
+named-security-groups: []          # UI tier — no SQL egress

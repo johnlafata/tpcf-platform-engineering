@@ -1,0 +1,8 @@
+shared-domains:
+  YOUR-DOMAIN:                     # TODO: replace with the top level domain
+    internal: false
+
+service-access:
+- broker: smb-broker              # TODO: confirm actual broker name for the smb service
+  service: smb
+  all_access_plans: true
