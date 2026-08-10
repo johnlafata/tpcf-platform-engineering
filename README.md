@@ -89,7 +89,9 @@ tpcf-platform-automation/
 │   ├── upload-product.bat                # Upload product tiles
 │   ├── stage-product.bat                 # Stage uploaded products
 │   ├── backup-foundation-config.bat      # Backup configurations
-│   └── test-om-interpolation.bat         # Test OM interpolation
+│   ├── test-om-interpolation.bat         # Test OM interpolation
+│   ├── create-cf-mgmt-uaa-client.bat     # Create/update the cf-mgmt UAA client
+│   └── map-entra-id-groups.bat           # Map Entra ID groups to UAA/CC scopes
 │
 ├── certs/                    # SSL certificate management
 │   ├── generate-openssl-certs-sbx.md     # Sandbox cert generation guide
