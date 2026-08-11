@@ -11,39 +11,41 @@ REM (see cf-mgmt-config\production\...) actually resolve to something at the ide
 REM layer -- cf-mgmt authorizes a group into a space's role, but UAA is what has to
 REM already know that external group exists and map it to scopes.
 REM
-REM Usage: map-entra-id-groups.bat <foundation-name> <system-domain> <admin-group-object-id> <developer-group-object-id> [saml-origin]
-REM Example: map-entra-id-groups.bat production sys.agi-explorer.com <ADMIN-GROUP-OBJECT-ID> <DEVELOPER-GROUP-OBJECT-ID>
-REM Example: map-entra-id-groups.bat production sys.agi-explorer.com 11111111-1111-1111-1111-111111111111 22222222-2222-2222-2222-222222222222 saml
+REM Group Object IDs come from env-creds\cf-groups.yml, not command-line arguments --
+REM the same two groups are used across every foundation, so there's one file to
+REM maintain instead of copy-pasted GUIDs in each invocation. See
+REM env-creds\cf-groups-redacted.yml for the template.
+REM
+REM Usage: map-entra-id-groups.bat <foundation-name> <system-domain> [saml-origin-override]
+REM Example: map-entra-id-groups.bat production sys.agi-explorer.com
+REM Example: map-entra-id-groups.bat production sys.agi-explorer.com "Azure AD"
 
 set FOUNDATION=%1
 set SYSTEM_DOMAIN=%2
-set ADMIN_GROUP_ID=%3
-set DEVELOPER_GROUP_ID=%4
-set SAML_ORIGIN=%5
-
-if "%SAML_ORIGIN%"=="" set SAML_ORIGIN=saml
+set SAML_ORIGIN_OVERRIDE=%3
 
 if "%FOUNDATION%"=="" goto usage
 if "%SYSTEM_DOMAIN%"=="" goto usage
-if "%ADMIN_GROUP_ID%"=="" goto usage
-if "%DEVELOPER_GROUP_ID%"=="" goto usage
 goto args_ok
 
 :usage
-echo Usage: %0 ^<foundation-name^> ^<system-domain^> ^<admin-group-object-id^> ^<developer-group-object-id^> [saml-origin]
-echo Example: %0 production sys.agi-explorer.com ^<ADMIN-GROUP-OBJECT-ID^> ^<DEVELOPER-GROUP-OBJECT-ID^>
+echo Usage: %0 ^<foundation-name^> ^<system-domain^> [saml-origin-override]
+echo Example: %0 production sys.agi-explorer.com
+echo Example: %0 production sys.agi-explorer.com "Azure AD"
 echo.
-echo admin-group-object-id     Entra ID group Object ID mapped to cloud_controller.admin
-echo                           (development users -- see WARNING below)
-echo developer-group-object-id Entra ID group Object ID mapped to cloud_controller.read
-echo                           and cloud_controller.write (developers)
-echo saml-origin               UAA identity provider origin name (default: saml)
-echo                           -- confirm the actual origin configured for your Entra ID
-echo                           SAML integration if this default is wrong.
+echo Group Object IDs are NOT passed on the command line -- they're read from
+echo env-creds\cf-groups.yml, which applies to every foundation. If that file
+echo doesn't exist yet:
+echo   copy env-creds\cf-groups-redacted.yml env-creds\cf-groups.yml
+echo   notepad env-creds\cf-groups.yml
 echo.
-echo WARNING: cloud_controller.admin is full Cloud Controller / platform admin --
-echo confirm that's really the intended scope for the "development users" group
-echo before running this against a foundation.
+echo saml-origin-override   UAA identity provider origin name. Optional --
+echo                        overrides saml_origin from cf-groups.yml if given.
+echo                        Defaults to "saml" if set in neither place.
+echo.
+echo WARNING: admin_group_object_id in cf-groups.yml maps to cloud_controller.admin
+echo -- full Cloud Controller / platform admin. Confirm that's really the intended
+echo scope for that group before running this against a foundation.
 exit /b 1
 
 :args_ok
@@ -59,6 +61,57 @@ if errorlevel 1 (
     echo Error: uaac is required. See docs\installation\GETTING-STARTED.md Step 5.
     exit /b 1
 )
+
+REM === Read group Object IDs and default SAML origin from cf-groups.yml ===
+REM Pure-batch parser -- one "key: value" pair per line, "#" full-line
+REM comments, no nesting. Quotes around a value are NOT stripped -- they're
+REM passed through as-is, which is what lets a value containing a space
+REM (e.g. saml_origin: "Azure AD") survive as one argument once it reaches
+REM the uaac calls below. Not a general YAML parser; see
+REM env-creds\cf-groups-redacted.yml for the exact format this expects.
+set CF_GROUPS_FILE=env-creds\cf-groups.yml
+
+if not exist "%CF_GROUPS_FILE%" (
+    echo Error: %CF_GROUPS_FILE% not found.
+    echo This file holds the Entra ID group Object IDs used across every foundation.
+    echo Create it from the template:
+    echo   copy env-creds\cf-groups-redacted.yml env-creds\cf-groups.yml
+    echo   notepad env-creds\cf-groups.yml
+    exit /b 1
+)
+
+set "ADMIN_GROUP_ID="
+set "DEVELOPER_GROUP_ID="
+set "SAML_ORIGIN="
+
+for /f "usebackq eol=# tokens=1* delims=: " %%a in ("%CF_GROUPS_FILE%") do (
+    set "CFG_KEY=%%a"
+    set "CFG_VAL=%%b"
+    if defined CFG_VAL if "!CFG_VAL:~-1!"==" " set "CFG_VAL=!CFG_VAL:~0,-1!"
+    if defined CFG_VAL if "!CFG_VAL:~-1!"==" " set "CFG_VAL=!CFG_VAL:~0,-1!"
+    if defined CFG_VAL if "!CFG_VAL:~-1!"==" " set "CFG_VAL=!CFG_VAL:~0,-1!"
+    if /i "!CFG_KEY!"=="admin_group_object_id" set "ADMIN_GROUP_ID=!CFG_VAL!"
+    if /i "!CFG_KEY!"=="developer_group_object_id" set "DEVELOPER_GROUP_ID=!CFG_VAL!"
+    if /i "!CFG_KEY!"=="saml_origin" set "SAML_ORIGIN=!CFG_VAL!"
+)
+
+if not "%SAML_ORIGIN_OVERRIDE%"=="" set SAML_ORIGIN=%SAML_ORIGIN_OVERRIDE%
+if "%SAML_ORIGIN%"=="" set SAML_ORIGIN=saml
+
+if "%ADMIN_GROUP_ID%"=="" (
+    echo Error: admin_group_object_id is missing or empty in %CF_GROUPS_FILE%.
+    exit /b 1
+)
+if "%DEVELOPER_GROUP_ID%"=="" (
+    echo Error: developer_group_object_id is missing or empty in %CF_GROUPS_FILE%.
+    exit /b 1
+)
+
+echo Read from %CF_GROUPS_FILE%:
+echo   admin_group_object_id     = %ADMIN_GROUP_ID%
+echo   developer_group_object_id = %DEVELOPER_GROUP_ID%
+echo   saml_origin                = %SAML_ORIGIN%
+echo.
 
 echo === Fetching UAA admin client credentials from Ops Manager for foundation: %FOUNDATION% ===
 
@@ -107,7 +160,7 @@ if %ERRORLEVEL% NEQ 0 (
 set FAILCOUNT=0
 
 echo === Mapping admin group [%ADMIN_GROUP_ID%] to cloud_controller.admin ===
-uaac group map --name cloud_controller.admin --externalgroup %ADMIN_GROUP_ID% --origin %SAML_ORIGIN%
+uaac group map --name cloud_controller.admin  %ADMIN_GROUP_ID% --origin %SAML_ORIGIN%
 if %ERRORLEVEL% NEQ 0 (
     echo   FAILED: cloud_controller.admin mapping
     set /a FAILCOUNT+=1
@@ -116,7 +169,7 @@ if %ERRORLEVEL% NEQ 0 (
 )
 
 echo === Mapping developer group [%DEVELOPER_GROUP_ID%] to cloud_controller.read ===
-uaac group map --name cloud_controller.read --externalgroup %DEVELOPER_GROUP_ID% --origin %SAML_ORIGIN%
+uaac group map --name cloud_controller.read  %DEVELOPER_GROUP_ID% --origin %SAML_ORIGIN%
 if %ERRORLEVEL% NEQ 0 (
     echo   FAILED: cloud_controller.read mapping
     set /a FAILCOUNT+=1
@@ -125,7 +178,7 @@ if %ERRORLEVEL% NEQ 0 (
 )
 
 echo === Mapping developer group [%DEVELOPER_GROUP_ID%] to cloud_controller.write ===
-uaac group map --name cloud_controller.write --externalgroup %DEVELOPER_GROUP_ID% --origin %SAML_ORIGIN%
+uaac group map --name cloud_controller.write  %DEVELOPER_GROUP_ID% --origin %SAML_ORIGIN%
 if %ERRORLEVEL% NEQ 0 (
     echo   FAILED: cloud_controller.write mapping
     set /a FAILCOUNT+=1
@@ -148,7 +201,7 @@ if %FAILCOUNT% GTR 0 (
 
 echo.
 echo === All group mappings created/updated successfully ===
-echo Next: put the real group Object IDs (not this script's placeholders) into the
+echo Next: put the same real group Object IDs from %CF_GROUPS_FILE% into the
 echo saml_group: entries in cf-mgmt-config\production\*\spaceConfig.yml so cf-mgmt's
 echo org/space role assignment actually resolves to these same groups.
 

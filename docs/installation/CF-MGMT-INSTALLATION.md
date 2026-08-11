@@ -98,28 +98,38 @@ uaac client add cf-mgmt --secret YOUR-SECRET ^
 
 The `saml_group:` references in the `spaceConfig.yml` files under `cf-mgmt-config\production\` (e.g. `entra-id-platform-users`) only work if UAA already knows about that external Entra ID group and maps it to real scopes. That mapping is separate from — and a prerequisite for — cf-mgmt's own org/space role assignment: cf-mgmt authorizes a group into a space's role, but UAA is what has to recognize the group exists in the first place.
 
-`ops-scripts\map-entra-id-groups.bat` does this, using the same `om credentials` approach as the cf-mgmt client script above — no admin secret typed in by hand:
+`ops-scripts\map-entra-id-groups.bat` does this, using the same `om credentials` approach as the cf-mgmt client script above — no admin secret typed in by hand. Group Object IDs are **not** passed as command-line arguments; they're read from `env-creds\cf-groups.yml`, since the same two Entra ID groups apply to every foundation:
 
 ```cmd
-ops-scripts\map-entra-id-groups.bat production sys.SYSTEM-DOMAIN <ADMIN-GROUP-OBJECT-ID> <DEVELOPER-GROUP-OBJECT-ID>
+copy env-creds\cf-groups-redacted.yml env-creds\cf-groups.yml
+notepad env-creds\cf-groups.yml
+ops-scripts\map-entra-id-groups.bat production sys.SYSTEM-DOMAIN
 ```
 
-It maps:
+`cf-groups.yml` holds three fields:
 
-- the **admin** group's Object ID → `cloud_controller.admin` (development users)
-- the **developer** group's Object ID → both `cloud_controller.read` and `cloud_controller.write`
+```yaml
+admin_group_object_id: 11111111-1111-1111-1111-111111111111
+developer_group_object_id: 22222222-2222-2222-2222-222222222222
+saml_origin: saml
+```
 
-Both group IDs are Entra ID **group Object IDs** (GUIDs), not group display names — confirm with the identity team which attribute your SAML assertion actually sends, since some Entra ID SAML configurations send the display name instead. `cloud_controller.admin` is full Cloud Controller/platform admin — the script prints a warning about this in its usage output; make sure that's really the intended scope for "development users" before running it.
+The script maps:
 
-Note: the TAS Setup Reference doc's own example (`APPENDIX A-1`) maps its groups with `--origin "Azure AD"`, not the script's default of `saml` — pass the fifth argument to match whatever origin name is actually configured in the TAS tile's SAML settings.
+- `admin_group_object_id` → `cloud_controller.admin` (development users)
+- `developer_group_object_id` → both `cloud_controller.read` and `cloud_controller.write`
 
-The script assumes the UAA origin for your Entra ID SAML integration is named `saml` — pass a fifth argument to override if it's configured differently:
+Both are Entra ID **group Object IDs** (GUIDs), not group display names — confirm with the identity team which attribute your SAML assertion actually sends, since some Entra ID SAML configurations send the display name instead. `cloud_controller.admin` is full Cloud Controller/platform admin — the script prints a warning about this in its usage output; make sure that's really the intended scope for "development users" before running it.
+
+`cf-groups.yml` is gitignored (only `cf-groups-redacted.yml` is committed), and it's a single shared file at `env-creds\cf-groups.yml`, not one per foundation — if a foundation ever genuinely needs different groups than the rest, use the CLI override below rather than forking this file.
+
+Note: the TAS Setup Reference doc's own example (`APPENDIX A-1`) maps its groups with `--origin "Azure AD"`, not the default of `saml`. Set `saml_origin: "Azure AD"` in `cf-groups.yml` to match, or override per-run with a third argument:
 
 ```cmd
-ops-scripts\map-entra-id-groups.bat production sys.SYSTEM-DOMAIN <ADMIN-GROUP-OBJECT-ID> <DEVELOPER-GROUP-OBJECT-ID> my-saml-origin
+ops-scripts\map-entra-id-groups.bat production sys.SYSTEM-DOMAIN "Azure AD"
 ```
 
-Once mapped, put the same real group Object IDs into the `saml_group:` entries in `cf-mgmt-config\production\*\spaceConfig.yml` (currently placeholders — see that folder's `README.md`) so cf-mgmt's role assignment and UAA's scope mapping point at the same groups.
+Once mapped, put the same real group Object IDs from `cf-groups.yml` into the `saml_group:` entries in `cf-mgmt-config\production\*\spaceConfig.yml` (currently placeholders — see that folder's `README.md`) so cf-mgmt's role assignment and UAA's scope mapping point at the same groups.
 
 ## Bootstrap the Config Directory
 

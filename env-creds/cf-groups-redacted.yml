@@ -1,0 +1,32 @@
+# cf-groups.yml
+#
+# Entra ID (Azure AD) SAML group Object IDs mapped to CF/TAS UAA scopes.
+# Read by ops-scripts\map-entra-id-groups.bat. The same two groups are used
+# for every foundation (sandbox, dev, production, ...) -- there is
+# intentionally no per-environment section here. If a foundation ever needs
+# different groups than the rest, don't extend this file; give that script a
+# CLI override instead and keep this file as the shared default.
+#
+# To use: copy this file to cf-groups.yml (gitignored) in this same folder
+# and fill in your real Entra ID group Object IDs.
+#   copy env-creds\cf-groups-redacted.yml env-creds\cf-groups.yml
+#   notepad env-creds\cf-groups.yml
+
+# Maps to cloud_controller.admin -- full Cloud Controller / platform admin.
+# Confirm this is really the intended scope for this group before running
+# the script; map-entra-id-groups.bat prints a warning about this too.
+admin_group_object_id: 11111111-1111-1111-1111-111111111111
+
+# Maps to both cloud_controller.read and cloud_controller.write.
+developer_group_object_id: 22222222-2222-2222-2222-222222222222
+
+# UAA identity provider origin name for these groups. Optional -- defaults to
+# "saml" if omitted. Confirm the actual origin configured in the TAS tile's
+# SAML settings for your foundation.
+#
+# Quote the value if it contains a space (e.g. TAS_Setup_Reference's own
+# worked example, saml_origin: "Azure AD") -- the parser is a simple batch
+# script, not a real YAML parser, and needs the quotes to keep it as one
+# value when it's later passed to uaac. A single word like the default below
+# doesn't need quotes.
+saml_origin: saml
