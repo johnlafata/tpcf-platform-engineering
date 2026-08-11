@@ -1,4 +1,4 @@
-@echo on
+@echo off
 setlocal EnableExtensions EnableDelayedExpansion
 
 REM Map MS Entra ID (Azure AD) SAML group Object IDs to UAA/Cloud Controller scopes.
