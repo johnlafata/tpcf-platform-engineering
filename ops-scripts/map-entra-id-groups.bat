@@ -95,8 +95,6 @@ for /f "usebackq eol=# tokens=1* delims=: " %%a in ("%CF_GROUPS_FILE%") do (
     if /i "!CFG_KEY!"=="saml_origin" set "SAML_ORIGIN=!CFG_VAL!"
 )
 
-echo %SAML_ORIGIN% 
-
 if not "%SAML_ORIGIN_OVERRIDE%"=="" set SAML_ORIGIN=%SAML_ORIGIN_OVERRIDE%
 if "%SAML_ORIGIN%"=="" set SAML_ORIGIN=saml
 
