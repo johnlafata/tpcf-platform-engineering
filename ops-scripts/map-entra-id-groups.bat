@@ -1,4 +1,4 @@
-@echo off
+@echo on
 setlocal EnableExtensions EnableDelayedExpansion
 
 REM Map MS Entra ID (Azure AD) SAML group Object IDs to UAA/Cloud Controller scopes.
@@ -94,6 +94,8 @@ for /f "usebackq eol=# tokens=1* delims=: " %%a in ("%CF_GROUPS_FILE%") do (
     if /i "!CFG_KEY!"=="developer_group_object_id" set "DEVELOPER_GROUP_ID=!CFG_VAL!"
     if /i "!CFG_KEY!"=="saml_origin" set "SAML_ORIGIN=!CFG_VAL!"
 )
+
+echo %SAML_ORIGIN% 
 
 if not "%SAML_ORIGIN_OVERRIDE%"=="" set SAML_ORIGIN=%SAML_ORIGIN_OVERRIDE%
 if "%SAML_ORIGIN%"=="" set SAML_ORIGIN=saml
