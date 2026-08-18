@@ -57,7 +57,27 @@ Consider adding a `cf-mgmt` check to `ops-scripts\verify-prerequisites.bat` alon
 
 ## Create a UAA Client for cf-mgmt
 
-cf-mgmt authenticates against the **foundation's own UAA** (not the Ops Manager UAA used elsewhere in this repo). It can run either as an admin user (`--user-id` / `--password`) or as a UAA client (`--client-secret`) — a dedicated client is the better fit for unattended/pipeline use:
+cf-mgmt authenticates against the **foundation's own UAA** (not the Ops Manager UAA used elsewhere in this repo). It can run either as an admin user (`--user-id` / `--password`) or as a UAA client (`--client-secret`) — a dedicated client is the better fit for unattended/pipeline use.
+
+### Option A — `ops-scripts\create-cf-mgmt-uaa-client.bat` (recommended)
+
+This script pulls the UAA admin client credentials straight from Ops Manager via `om credentials` (per the [om credentials docs](https://github.com/pivotal-cf/om/blob/main/docs/credentials/README.md)), so nobody has to type or store the admin secret by hand. It creates (or updates) the `cf-mgmt` client with the correct authorities, verifies `routing.router_groups.read` actually landed, and saves the result to `env-creds\<foundation>\cf-mgmt-env.yml` (gitignored):
+
+```cmd
+ops-scripts\create-cf-mgmt-uaa-client.bat production sys.SYSTEM-DOMAIN
+```
+
+Pass a third argument if you want to set the `cf-mgmt` client secret yourself instead of having the script generate one:
+
+```cmd
+ops-scripts\create-cf-mgmt-uaa-client.bat production sys.SYSTEM-DOMAIN MySecret123
+```
+
+It uses `om credentials -p cf -c .uaa.admin_client_credentials` as the credential reference for the tile's UAA admin client — if that reference doesn't exist on your foundation, the script prints the command to list the actual reference names available (`om credentials -p cf`, no `-c` flag) so you can adjust.
+
+### Option B — manual `uaac` commands
+
+Same result, run by hand — useful for understanding what the script above actually does, or if `om credentials` isn't available for some reason:
 
 ```cmd
 REM Target the foundation's UAA (not Ops Manager's)
@@ -73,6 +93,43 @@ uaac client add cf-mgmt --secret YOUR-SECRET ^
 ```
 
 `routing.router_groups.read` is easy to miss — it's not covered by `cloud_controller.admin`, but export-config needs it at the very end of the run to list TCP router groups. Without it, everything else (orgs, spaces, ASGs, quotas, shared domains) exports fine and the run only fails on that last step — see [Troubleshooting](#getting-routing-groups-unauthorized) below if you hit this after already creating the client.
+
+## Map Entra ID Groups to UAA Scopes
+
+The `saml_group:` references in the `spaceConfig.yml` files under `cf-mgmt-config\production\` (e.g. `entra-id-platform-users`) only work if UAA already knows about that external Entra ID group and maps it to real scopes. That mapping is separate from — and a prerequisite for — cf-mgmt's own org/space role assignment: cf-mgmt authorizes a group into a space's role, but UAA is what has to recognize the group exists in the first place.
+
+`ops-scripts\map-entra-id-groups.bat` does this, using the same `om credentials` approach as the cf-mgmt client script above — no admin secret typed in by hand. Group Object IDs are **not** passed as command-line arguments; they're read from `env-creds\cf-groups.yml`, since the same two Entra ID groups apply to every foundation:
+
+```cmd
+copy env-creds\cf-groups-redacted.yml env-creds\cf-groups.yml
+notepad env-creds\cf-groups.yml
+ops-scripts\map-entra-id-groups.bat production sys.SYSTEM-DOMAIN
+```
+
+`cf-groups.yml` holds three fields:
+
+```yaml
+admin_group_object_id: 11111111-1111-1111-1111-111111111111
+developer_group_object_id: 22222222-2222-2222-2222-222222222222
+saml_origin: saml
+```
+
+The script maps:
+
+- `admin_group_object_id` → `cloud_controller.admin` (development users)
+- `developer_group_object_id` → both `cloud_controller.read` and `cloud_controller.write`
+
+Both are Entra ID **group Object IDs** (GUIDs), not group display names — confirm with the identity team which attribute your SAML assertion actually sends, since some Entra ID SAML configurations send the display name instead. `cloud_controller.admin` is full Cloud Controller/platform admin — the script prints a warning about this in its usage output; make sure that's really the intended scope for "development users" before running it.
+
+`cf-groups.yml` is gitignored (only `cf-groups-redacted.yml` is committed), and it's a single shared file at `env-creds\cf-groups.yml`, not one per foundation — if a foundation ever genuinely needs different groups than the rest, use the CLI override below rather than forking this file.
+
+Note: the TAS Setup Reference doc's own example (`APPENDIX A-1`) maps its groups with `--origin "Azure AD"`, not the default of `saml`. Set `saml_origin: "Azure AD"` in `cf-groups.yml` to match, or override per-run with a third argument:
+
+```cmd
+ops-scripts\map-entra-id-groups.bat production sys.SYSTEM-DOMAIN "Azure AD"
+```
+
+Once mapped, put the same real group Object IDs from `cf-groups.yml` into the `saml_group:` entries in `cf-mgmt-config\production\*\spaceConfig.yml` (currently placeholders — see that folder's `README.md`) so cf-mgmt's role assignment and UAA's scope mapping point at the same groups.
 
 ## Bootstrap the Config Directory
 
@@ -191,7 +248,9 @@ If it still fails after updating authorities, double check the client actually p
 uaac client get cf-mgmt
 ```
 
-and confirm `routing.router_groups.read` appears in the `authorities` list returned.
+and confirm `routing.router_groups.read` appears in the `authorities` list returned — **check the spelling carefully.** It's easy to type `routing.router-groups.read` (hyphen) instead of `routing.router_groups.read` (underscore between `router` and `groups`). UAA happily stores the hyphenated version as a valid-looking scope with no error, but it doesn't match anything the Routing API checks for, so the export still fails with the exact same "unauthorized" message — just as if the scope were never added at all. If `uaac client update` doesn't seem to be taking effect, this typo is the first thing to rule out before suspecting a client-permissions issue.
+
+If the update genuinely isn't sticking (correct spelling, still missing after `uaac client get cf-mgmt`), that usually comes down to the *admin client's own* authorities — in UAA, a client generally can't grant a scope to another client unless it already holds that same scope itself, even with `uaa.admin`. Check `uaac client get admin` for `routing.router_groups.read` in its own authorities list; if it's missing there too, you'll need a client that already has it (often an internal platform client used by the router/routing-api components) or have whoever manages UAA add it directly.
 
 ## References
 

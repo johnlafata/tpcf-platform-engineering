@@ -1,0 +1,3 @@
+org: internal
+default-isolation-segment: isolated-segment
+private-domains: []
