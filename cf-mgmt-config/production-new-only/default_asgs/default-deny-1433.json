@@ -2,11 +2,21 @@
   {
     "protocol": "udp",
     "destination": "0.0.0.0/0",
-    "ports": "53"
+    "ports": "1-1432"
+  },
+  {
+    "protocol": "udp",
+    "destination": "0.0.0.0/0",
+    "ports": "1434-65535"
   },
   {
     "protocol": "tcp",
     "destination": "0.0.0.0/0",
-    "ports": "53,80,443"
+    "ports": "1-1432"
+  },
+  {
+    "protocol": "tcp",
+    "destination": "0.0.0.0/0",
+    "ports": "1434-65535"
   }
 ]
