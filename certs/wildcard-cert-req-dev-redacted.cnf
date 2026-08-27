@@ -26,3 +26,5 @@ DNS.6 = *.login.sys.dev.<your-domain>
 DNS.7 = uaa.sys.dev.<your-domain>
 DNS.8 = login.sys.dev.<your-domain>
 DNS.9 = opsmgr-dev.<your-domain>
+DNS.10 = tanzuhub.<your-domain>
+
