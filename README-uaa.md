@@ -164,3 +164,12 @@ This is what makes the `saml_group:` entries in `cf-mgmt-config\production\*\spa
 - `technical notes\TAS_Setup_Reference_2026-07-22.docx` — Appendix A-1 (Entra ID group mapping), Appendix B / B-2 (Ops Manager SAML + OM CLI), Appendix D (cleaning up duplicate identity providers)
 - cf-mgmt repo: https://github.com/vmware-tanzu-labs/cf-mgmt
 - om CLI commands: https://github.com/pivotal-cf/om/blob/main/docs/README.md#commands
+
+
+## debugging federated metadata xml
+
+ curl -o federationmetadata.xml "https://login.microsoftonline.com/224b9784-a475-4be4-af82-01ae85c097b8/federationmetadata/2007-06/federationmetadata.xml?appid=942f0bf2-a6da-4381-9894-f7e8ebeb9346"
+
+ open the file federationmetadata.xml in vscode,
+ click on the encoding at the bottom, 
+ save with encoding, but choose only utf-8 (not utf-8 with BOM)
