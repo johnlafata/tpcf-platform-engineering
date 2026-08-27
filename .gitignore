@@ -1,6 +1,9 @@
 # Configuration backups
 # config-backup/
 
+env-creds/*/om-env.yml
+env-creds/cf-groups.yml
+
 # Extracted configurations (contains credentials)
 # config-export/
 
