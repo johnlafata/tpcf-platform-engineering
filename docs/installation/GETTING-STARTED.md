@@ -177,11 +177,11 @@ UAAC is needed to create the client for the Ops Manager API when using SAML or O
 
 1. Target your Ops Manager UAA server:
    ```cmd
-   uaac target https://OPS-MAN-FQDN/uaa
+   uaac target https://OPS-MAN-FQDN/uaa  --skip-ssl-validation
    ```
    Example:
    ```cmd
-   uaac target https://opsmgr-sbx.YOUR-DOMAIN/uaa
+   uaac target https://opsmgr-sbx.YOUR-DOMAIN/uaa  --skip-ssl-validation
    ```
 
 2. Retrieve your UAA token:

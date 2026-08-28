@@ -212,5 +212,5 @@ REM Apply TAS changes
 ops-scripts\apply-changes.bat sandbox cf
 ```
 
-**Note:** The scripts expect configuration files (typically extracted via backup). See the [Getting Started Guide](docs/installation/GETTING-STARTED.md) for complete workflow including initial setup.
+**Note:** The scripts expect configuration files (typically extracted via backup). See the [Getting Started Guide](docs/installation/GETTING-STARTED.md) for complete workflow including initial setup
 

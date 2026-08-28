@@ -81,7 +81,7 @@ Same result, run by hand — useful for understanding what the script above actu
 
 ```cmd
 REM Target the foundation's UAA (not Ops Manager's)
-uaac target https://uaa.SYSTEM-DOMAIN
+uaac target https://uaa.SYSTEM-DOMAIN  --skip-ssl-validation
 
 REM Get a token as an existing admin to create the client
 uaac token client get admin -s ADMIN-CLIENT-SECRET
@@ -232,7 +232,7 @@ error: Getting routing groups: unauthorized
 **Fix:** add the missing scope to the existing client and pull a fresh token before re-running (note it's `uaac client update`, not `client add`, since the client already exists):
 
 ```cmd
-uaac target https://uaa.SYSTEM-DOMAIN
+uaac target https://uaa.SYSTEM-DOMAIN  --skip-ssl-validation
 uaac token client get admin -s ADMIN-CLIENT-SECRET
 
 uaac client update cf-mgmt --authorities cloud_controller.admin,scim.read,scim.write,clients.read,clients.write,clients.secret,clients.admin,uaa.admin,routing.router_groups.read
