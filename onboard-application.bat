@@ -56,12 +56,35 @@ if errorlevel 1 (
 
 set UI_SPACE=%APP_NAME%-ui
 set API_SPACE=%APP_NAME%-api
+set ISOLATION_SEGMENT=sql-secured-segment
 
 echo === Onboarding %APP_NAME% into org %ORG_NAME% ===
 echo UI space:  %UI_SPACE%
 echo API space: %API_SPACE%
 echo Service account: %SERVICE_ACCOUNT%
 echo.
+
+echo === Checking org %ORG_NAME% ===
+cf org %ORG_NAME% >nul 2>&1
+if %ERRORLEVEL% NEQ 0 (
+    echo === Org %ORG_NAME% does not exist, creating it ===
+    cf create-org %ORG_NAME%
+    if %ERRORLEVEL% NEQ 0 (
+        echo === Failed to create org %ORG_NAME% ===
+        exit /b 1
+    )
+) else (
+    echo === Org %ORG_NAME% already exists ===
+)
+
+echo === Ensuring org %ORG_NAME% is entitled to isolation segment %ISOLATION_SEGMENT% ===
+cf enable-org-isolation %ORG_NAME% %ISOLATION_SEGMENT%
+if %ERRORLEVEL% NEQ 0 (
+    echo === Failed to enable isolation segment %ISOLATION_SEGMENT% on org %ORG_NAME% ===
+    echo Confirm the isolation segment exists on this foundation ^(cf isolation-segments^)
+    echo and that you have privileges to entitle it to an org.
+    exit /b 1
+)
 
 echo === Creating spaces ===
 cf create-space %UI_SPACE% -o %ORG_NAME%
@@ -108,7 +131,7 @@ if /i "%DB_ACCESS%"=="yes" (
         exit /b 1
     )
 
-    cf set-space-isolation-segment %API_SPACE% sql-secured-segment
+    cf set-space-isolation-segment %API_SPACE% %ISOLATION_SEGMENT%
     if %ERRORLEVEL% NEQ 0 (
         echo === Failed to set isolation segment on %API_SPACE% ===
         exit /b 1
@@ -126,14 +149,14 @@ if /i "%DB_ACCESS%"=="yes" (
         exit /b 1
     )
 
-    echo === Database access configured: %API_SPACE% is in sql-secured-segment and bound to SQL-ACCESS-ASG ===
+    echo === Database access configured: %API_SPACE% is in %ISOLATION_SEGMENT% and bound to SQL-ACCESS-ASG ===
 ) else (
     echo === Skipping database access setup -- %UI_SPACE% and %API_SPACE% will use the platform default ASG only ===
 )
 
 echo.
 echo === Onboarding complete for %APP_NAME% ===
-echo   Org:              %ORG_NAME%
+echo   Org:              %ORG_NAME% ^(entitled to isolation segment %ISOLATION_SEGMENT%^)
 echo   Spaces:           %UI_SPACE%, %API_SPACE%
 echo   Service account:  %SERVICE_ACCOUNT% ^(SpaceDeveloper on both^)
 echo   Database access:  %DB_ACCESS%
