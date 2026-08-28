@@ -52,7 +52,6 @@ call :check_tool "OM CLI" om required
 REM call :check_tool "CredHub CLI" credhub required
 REM call :check_tool "BOSH CLI" bosh required
 call :check_tool "CF CLI" cf required
-call :check_tool "jq" jq required
 call :check_tool "git" git required
 
 
@@ -81,7 +80,6 @@ if %missingCount%==0 (
 REM     echo   CredHub CLI: https://github.com/cloudfoundry/credhub-cli/releases
 REM     echo   BOSH CLI: https://github.com/cloudfoundry/bosh-cli/releases
     echo   CF CLI: https://github.com/cloudfoundry/cli/releases
-    echo   jq: https://jqlang.github.io/jq/download/
     echo   git: https://git-scm.com/download/win
     exit /b 1
 )
