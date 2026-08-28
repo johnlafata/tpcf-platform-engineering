@@ -127,10 +127,11 @@ These tools are required on your jumphost to run the automation scripts.
 
 1. **OM CLI** - Ops Manager automation
 2. **CF CLI** - Cloud Foundry/TAS management (post-deployment)
-3. **jq** - JSON processing (used by scripts)
-4. **git** - Version control (required if managing configs in source control)
-5. **UAAC** - UAA client for user management
-6. **cf-mgmt** - Declarative org/space/user/ASG management (post-deployment) - see [cf-mgmt Installation Notes](docs/installation/CF-MGMT-INSTALLATION.md)
+3. **git** - Version control (required if managing configs in source control)
+4. **UAAC** - UAA client for user management
+5. **cf-mgmt** - Declarative org/space/user/ASG management (post-deployment) - see [cf-mgmt Installation Notes](docs/installation/CF-MGMT-INSTALLATION.md)
+
+JSON parsing in the ops-scripts (e.g. `create-cf-mgmt-uaa-client.bat`, `map-entra-id-groups.bat`) uses PowerShell's built-in `ConvertFrom-Json`, so `jq` is not required on Windows jumphosts.
 
 ---
 

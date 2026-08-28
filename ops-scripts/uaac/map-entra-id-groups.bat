@@ -50,12 +50,6 @@ exit /b 1
 
 :args_ok
 
-where jq >nul 2>&1
-if errorlevel 1 (
-    echo Error: jq is required ^(used to parse the credentials om returns^). See README.md.
-    exit /b 1
-)
-
 where uaac >nul 2>&1
 if errorlevel 1 (
     echo Error: uaac is required. See docs\installation\GETTING-STARTED.md Step 5.
@@ -117,28 +111,42 @@ echo === Fetching UAA admin client credentials from Ops Manager for foundation: 
 
 REM credential-reference name for the cf tile's UAA admin client, per:
 REM https://github.com/pivotal-cf/om/blob/main/docs/credentials/README.md
-set CREDS_FILE=%TEMP%\uaa-admin-creds-%FOUNDATION%.json
-call ops-scripts\om-command.bat %FOUNDATION% credentials -p cf -c .uaa.admin_client_credentials --format json > "%CREDS_FILE%"
+REM
+REM om's own -f/--credential-field flag prints a single field as plain text,
+REM so no JSON parsing tool (jq, PowerShell, or otherwise) is needed here --
+REM just two om calls and a native "set /p" line read from each.
+set IDENTITY_FILE=%TEMP%\uaa-admin-identity-%FOUNDATION%.txt
+set SECRET_FILE=%TEMP%\uaa-admin-secret-%FOUNDATION%.txt
 
+call ops-scripts\om-command.bat %FOUNDATION% credentials -p cf -c .uaa.admin_client_credentials -f identity > "%IDENTITY_FILE%"
 if %ERRORLEVEL% NEQ 0 (
-    echo === Failed to fetch UAA admin credentials from Ops Manager ===
+    echo === Failed to fetch UAA admin client identity from Ops Manager ===
     echo Run this to see the credential reference names actually available on this
     echo foundation, in case .uaa.admin_client_credentials is named differently here:
     echo   ops-scripts\om-command.bat %FOUNDATION% credentials -p cf
-    del "%CREDS_FILE%" 2>nul
+    del "%IDENTITY_FILE%" 2>nul
     exit /b 1
 )
 
-for /f "usebackq delims=" %%i in (`jq -r ".identity" "%CREDS_FILE%"`) do set ADMIN_CLIENT_ID=%%i
-for /f "usebackq delims=" %%i in (`jq -r ".password" "%CREDS_FILE%"`) do set ADMIN_CLIENT_SECRET=%%i
-del "%CREDS_FILE%" 2>nul
+call ops-scripts\om-command.bat %FOUNDATION% credentials -p cf -c .uaa.admin_client_credentials -f password > "%SECRET_FILE%"
+if %ERRORLEVEL% NEQ 0 (
+    echo === Failed to fetch UAA admin client secret from Ops Manager ===
+    del "%IDENTITY_FILE%" 2>nul
+    del "%SECRET_FILE%" 2>nul
+    exit /b 1
+)
+
+set /p ADMIN_CLIENT_ID=<"%IDENTITY_FILE%"
+set /p ADMIN_CLIENT_SECRET=<"%SECRET_FILE%"
+del "%IDENTITY_FILE%" 2>nul
+del "%SECRET_FILE%" 2>nul
 
 if "%ADMIN_CLIENT_ID%"=="" (
-    echo Error: could not parse admin client identity from Ops Manager's response.
+    echo Error: could not read admin client identity from Ops Manager's response.
     exit /b 1
 )
 if "%ADMIN_CLIENT_SECRET%"=="" (
-    echo Error: could not parse admin client secret from Ops Manager's response.
+    echo Error: could not read admin client secret from Ops Manager's response.
     exit /b 1
 )
 

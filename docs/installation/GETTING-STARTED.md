@@ -148,16 +148,7 @@ Git is a **prerequisite** for managing platform automation configurations.
    bosh -v
    ```
 
-##### 4. jq (JSON processing - required by scripts)
-
-1. Download from: https://jqlang.github.io/jq/download/
-2. Get `jq-windows-amd64.exe`
-3. Rename to `jq.exe`
-4. Move to `%LOCALAPPDATA%\Programs\platform-automation`
-5. Verify:
-   ```cmd
-   jq --version
-   ```
+JSON parsing in the ops-scripts (e.g. `create-cf-mgmt-uaa-client.bat`, `map-entra-id-groups.bat`) uses PowerShell's built-in `ConvertFrom-Json`, which ships with Windows -- no separate JSON tool needs to be installed here.
 
 #### Step 5: Install UAAC (for SAML/OIDC authentication)
 
@@ -225,7 +216,6 @@ brew install om
 brew install cloudfoundry/tap/credhub-cli
 brew install cloudfoundry/tap/bosh-cli
 brew install cloudfoundry/tap/cf-cli@8
-brew install jq
 ```
 
 ---

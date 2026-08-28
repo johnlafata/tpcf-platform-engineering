@@ -20,7 +20,7 @@ The rest of this repository (`ops-scripts\*.bat`) uses **OM CLI** to deploy and 
 
 ## Installing cf-mgmt
 
-Pick one of the two release channels below. Both produce a single `cf-mgmt` (or `cf-mgmt.exe`) binary — install it into the same tools directory already used for `om`, `cf`, `bosh`, and `jq` (`%LOCALAPPDATA%\Programs\platform-automation` on Windows) so it's on `PATH` alongside them.
+Pick one of the two release channels below. Both produce a single `cf-mgmt` (or `cf-mgmt.exe`) binary — install it into the same tools directory already used for `om`, `cf`, and `bosh` (`%LOCALAPPDATA%\Programs\platform-automation` on Windows) so it's on `PATH` alongside them.
 
 ### Option A — Commercially Supported Release (Broadcom Support Portal)
 
@@ -53,7 +53,7 @@ cf-mgmt version
 cf-mgmt version
 ```
 
-Consider adding a `cf-mgmt` check to `ops-scripts\verify-prerequisites.bat` alongside the existing OM CLI / CF CLI / jq / git checks, so a missing install is caught the same way.
+Consider adding a `cf-mgmt` check to `ops-scripts\verify-prerequisites.bat` alongside the existing OM CLI / CF CLI / git checks, so a missing install is caught the same way.
 
 ## Create a UAA Client for cf-mgmt
 
@@ -61,17 +61,13 @@ cf-mgmt authenticates against the **foundation's own UAA** (not the Ops Manager 
 
 ### Option A — `ops-scripts\create-cf-mgmt-uaa-client.bat` (recommended)
 
-This script pulls the UAA admin client credentials straight from Ops Manager via `om credentials` (per the [om credentials docs](https://github.com/pivotal-cf/om/blob/main/docs/credentials/README.md)), so nobody has to type or store the admin secret by hand. It creates (or updates) the `cf-mgmt` client with the correct authorities, verifies `routing.router_groups.read` actually landed, and saves the result to `env-creds\<foundation>\cf-mgmt-env.yml` (gitignored):
-
-```cmd
-ops-scripts\create-cf-mgmt-uaa-client.bat production sys.SYSTEM-DOMAIN
-```
-
-Pass a third argument if you want to set the `cf-mgmt` client secret yourself instead of having the script generate one:
+This script pulls the UAA admin client credentials straight from Ops Manager via `om credentials -f` (per the [om credentials docs](https://github.com/pivotal-cf/om/blob/main/docs/credentials/README.md)), so nobody has to type or store the admin secret by hand — and since `-f` prints a single field as plain text, no JSON parsing tool (`jq`, PowerShell, or otherwise) is needed on the jumphost. It creates (or updates) the `cf-mgmt` client with the correct authorities, verifies `routing.router_groups.read` actually landed, and saves the result to `env-creds\<foundation>\cf-mgmt-env.yml` (gitignored):
 
 ```cmd
 ops-scripts\create-cf-mgmt-uaa-client.bat production sys.SYSTEM-DOMAIN MySecret123
 ```
+
+The `cf-mgmt` client secret (third argument) is required — pick your own value; the script does not generate one for you.
 
 It uses `om credentials -p cf -c .uaa.admin_client_credentials` as the credential reference for the tile's UAA admin client — if that reference doesn't exist on your foundation, the script prints the command to list the actual reference names available (`om credentials -p cf`, no `-c` flag) so you can adjust.
 
