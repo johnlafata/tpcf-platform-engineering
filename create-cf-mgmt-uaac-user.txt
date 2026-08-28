@@ -1,0 +1,10 @@
+# create cf-mgmt-uaac-user
+uaac target https://uaa.<sys-domain> --skip-ssl-validation
+
+uaac token client get admin -s ADMIN-CLIENT-SECRET
+
+uaac client add cf-mgmt --authorized_grant_type client_credentials --authorities cloud_controller.admin,scim.read,scim.write,clients.read,clients.write,clients.secret,clients.admin,uaa.admin,routing.router_groups.read
+
+
+# now backup the foundation setup
+cf-mgmt export-config --config-dir cf-mgmt-config\production --system-domain <sys-domain> --user-id cf-mgmt --client-secret secret-from-uaac-client-add-command>
