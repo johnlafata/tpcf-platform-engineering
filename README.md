@@ -56,18 +56,7 @@ Complete documentation is organized by lifecycle phase:
 Get started with setting up your jumphost and deploying your first foundation.
 
 - **[Getting Started Guide](docs/installation/GETTING-STARTED.md)** - Complete end-to-end workflow from jumphost setup through first deployment (includes detailed CLI tool installation for Windows, Mac, and Linux)
-- **[Variables Collection Checklist](docs/installation/VARIABLES-CHECKLIST.md)** - Systematic worksheet to collect all required variables for your environment
 - **[cf-mgmt Installation Notes](docs/installation/CF-MGMT-INSTALLATION.md)** - Installing cf-mgmt and bootstrapping its config, for declarative org/space/user/ASG management once a foundation is up
-
-### ⚙️ Operations & Maintenance
-
-Day-to-day operational procedures and credential management.
-
-- **[Troubleshooting Guide](docs/troubleshooting.md)** - Common issues and solutions
-
-### 🔄 Temporary Shutdown
-
-Procedures for temporarily stopping a foundation for maintenance.
 
 
 ## Repository Structure (Multi-Foundation Architecture)
