@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CF-MGMT-INSTALLATION</title>
+<style>
+body {
+  font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+  max-width: 900px;
+  margin: 2rem auto;
+  padding: 0 1.5rem;
+  line-height: 1.6;
+  color: #1a1a1a;
+}
+h1, h2, h3, h4, h5, h6 { line-height: 1.25; margin-top: 1.8em; }
+h1 { border-bottom: 2px solid #ddd; padding-bottom: 0.3em; }
+h2 { border-bottom: 1px solid #eee; padding-bottom: 0.3em; }
+code {
+  font-family: Consolas, "Courier New", monospace;
+  background: #f3f3f3;
+  padding: 0.15em 0.4em;
+  border-radius: 3px;
+  font-size: 0.92em;
+}
+pre {
+  background: #f6f8fa;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 1em;
+  overflow-x: auto;
+}
+pre code { background: none; padding: 0; }
+table { border-collapse: collapse; width: 100%; margin: 1em 0; }
+th, td { border: 1px solid #ddd; padding: 0.5em 0.8em; text-align: left; }
+th { background: #f6f8fa; }
+blockquote { border-left: 4px solid #ddd; margin-left: 0; padding-left: 1em; color: #555; }
+a { color: #0969da; }
+hr { border: none; border-top: 1px solid #ddd; margin: 2em 0; }
+img { max-width: 100%; }
+</style>
+</head>
+<body>
+<h1 id="cf-mgmt-installation-notes">cf-mgmt Installation Notes</h1>
+<p>This guide covers installing and bootstrapping <strong>cf-mgmt</strong> on the jumphost, alongside the existing OM CLI automation in this repository.</p>
+<h2 id="where-cf-mgmt-fits">Where cf-mgmt Fits</h2>
+<p>The rest of this repository (<code>ops-scripts\*.bat</code>) uses <strong>OM CLI</strong> to deploy and configure Ops Manager, BOSH Director, and the TAS tile itself — see <a href="GETTING-STARTED.html"><code>docs/installation/GETTING-STARTED.md</code></a>. <strong>cf-mgmt</strong> picks up after that: once a foundation's TAS API is up and reachable, cf-mgmt declaratively manages the things that live <em>inside</em> that foundation — orgs, spaces, user/role authorization, isolation segments, and application security groups — from a set of YAML/JSON files instead of one-off <code>cf</code> CLI commands.</p>
+<table>
+<thead>
+<tr>
+<th>Tool</th>
+<th>Manages</th>
+<th>Runs against</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>OM CLI</td>
+<td>Ops Manager, BOSH Director, TAS tile</td>
+<td>Ops Manager API</td>
+</tr>
+<tr>
+<td>cf-mgmt</td>
+<td>Orgs, spaces, users, quotas, ASGs</td>
+<td>TAS Cloud Controller / UAA API</td>
+</tr>
+</tbody>
+</table>
+<h2 id="prerequisites">Prerequisites</h2>
+<ul>
+<li><strong>CF CLI</strong> — already a required tool for this repo; see the CF CLI install steps in <a href="GETTING-STARTED.html"><code>GETTING-STARTED.md</code></a>. cf-mgmt does not replace it.</li>
+<li><strong>A deployed, reachable TAS foundation</strong> (system domain resolvable, API reachable on 443).</li>
+<li><strong>UAAC</strong> (<code>gem install cf-uaac</code>) — already covered in <code>GETTING-STARTED.md</code> for the Ops Manager UAA; the same <code>uaac</code> binary is reused here, just pointed at the foundation's UAA instead of Ops Manager's.</li>
+<li>Either a CF admin <strong>username/password</strong>, or a <strong>UAA client</strong> with sufficient scopes (see <a href="#create-a-uaa-client-for-cf-mgmt">Create a UAA Client</a> below).</li>
+</ul>
+<h2 id="installing-cf-mgmt">Installing cf-mgmt</h2>
+<p>Follolw the instructions to install the Commercially Supported Releaser of cf-mgmt below, it exists of a single <code>cf-mgmt</code> (or <code>cf-mgmt.exe</code>) binary — install it into the same tools directory already used for <code>om</code>, <code>cf</code>, and <code>bosh</code> (<code>%LOCALAPPDATA%\Programs\platform-automation</code> on Windows) so it's on <code>PATH</code> alongside them.</p>
+<h3 id="commercially-supported-release-broadcom-support-portal">Commercially Supported Release (Broadcom Support Portal)</h3>
+<ol>
+<li>Sign in to <a href="https://support.broadcom.com/">support.broadcom.com</a></li>
+<li>Go to <strong>My Downloads</strong> and search for <code>cf-mgmt</code></li>
+<li>Select <strong>cf-mgmt for VMware Tanzu Platform</strong> and download the desired release</li>
+<li>Windows: rename the downloaded binary to <code>cf-mgmt.exe</code> and move it into <code>%LOCALAPPDATA%\Programs\platform-automation</code></li>
+<li>Mac/Linux: rename to <code>cf-mgmt</code>, <code>chmod +x cf-mgmt</code>, and move it onto your <code>PATH</code> (e.g. <code>/usr/local/bin</code>)</li>
+</ol>
+<h3 id="verify">Verify</h3>
+<pre><code class="language-cmd">cf-mgmt version</code></pre>
+<pre><code class="language-bash"># Mac/Linux
+cf-mgmt version</code></pre>
+<p>Consider adding a <code>cf-mgmt</code> check to <code>ops-scripts\verify-prerequisites.bat</code> alongside the existing OM CLI / CF CLI / git checks, so a missing install is caught the same way.</p>
+<h2 id="create-a-uaa-client-for-cf-mgmt">Create a UAA Client for cf-mgmt</h2>
+<p>cf-mgmt authenticates against the <strong>foundation's own UAA</strong> (not the Ops Manager UAA used elsewhere in this repo). It can run either as an admin user (<code>--user-id</code> / <code>--password</code>) or as a UAA client (<code>--client-secret</code>) — a dedicated client is the better fit for unattended/pipeline use.</p>
+<p>Create the client using the following <code>uaac</code> commands:</p>
+<pre><code class="language-cmd">REM Fetch the tile's UAA admin client credentials from Ops Manager (or type them in by hand):
+ops-scripts\om-command.bat FOUNDATION credentials -p cf -c .uaa.admin_client_credentials -f identity
+ops-scripts\om-command.bat FOUNDATION credentials -p cf -c .uaa.admin_client_credentials -f password
+
+REM Target the foundation's UAA (not Ops Manager's)
+uaac target https://uaa.SYSTEM-DOMAIN  --skip-ssl-validation
+
+REM Get a token as an existing admin to create the client
+uaac token client get admin -s ADMIN-CLIENT-SECRET
+
+REM Create a dedicated client for cf-mgmt
+uaac client add cf-mgmt --secret YOUR-SECRET ^
+  --authorized_grant_types client_credentials ^
+  --authorities cloud_controller.admin,scim.read,scim.write,clients.read,clients.write,clients.secret,clients.admin,uaa.admin,routing.router_groups.read</code></pre>
+<p>Pick your own <code>cf-mgmt</code> client secret and save it somewhere durable, e.g. <code>env-creds\&lt;foundation&gt;\cf-mgmt-env.yml</code> (gitignored).</p>
+<p><code>om credentials -p cf -c .uaa.admin_client_credentials</code> is the credential reference for the tile's UAA admin client — if that reference doesn't exist on your foundation, run <code>om credentials -p cf</code> (no <code>-c</code> flag) to list the actual reference names available and adjust.</p>
+<p><code>routing.router_groups.read</code> is easy to miss — it's not covered by <code>cloud_controller.admin</code>, but export-config needs it at the very end of the run to list TCP router groups. Without it, everything else (orgs, spaces, ASGs, quotas, shared domains) exports fine and the run only fails on that last step — see <a href="#getting-routing-groups-unauthorized">Troubleshooting</a> below if you hit this after already creating the client.</p>
+<h2 id="todo-validate-entry-group-interaction-with-cf-mgmt-do-we-need-it">TODO - validate entry group interaction with cf-mgmt - do we need it?</h2>
+<h2 id="map-entra-id-groups-to-uaa-scopes">Map Entra ID Groups to UAA Scopes.</h2>
+<p>The <code>saml_group:</code> references in the <code>spaceConfig.yml</code> files under <code>cf-mgmt-config\production\</code> (e.g. <code>entra-id-platform-users</code>) only work if UAA already knows about that external Entra ID group and maps it to real scopes. That mapping is separate from — and a prerequisite for — cf-mgmt's own org/space role assignment: cf-mgmt authorizes a group into a space's role, but UAA is what has to recognize the group exists in the first place.</p>
+<p>MAP your user community to your cf permissions using the command reference:</p>
+<pre><code class="language-cmd">uaac target https://uaa.SYSTEM-DOMAIN --skip-ssl-validation
+uaac token client get admin -s ADMIN-CLIENT-SECRET
+
+REM permissions to Administrators
+uaac group map --name cloud_controller.admin "ADMIN-GROUP-OBJECT-ID" --origin "Azure AD"
+
+REM permissions to Developers
+uaac group map --name cloud_controller.read "DEVELOPER-GROUP-OBJECT-ID" --origin "Azure AD"
+uaac group map --name cloud_controller.write "DEVELOPER-GROUP-OBJECT-ID" --origin "Azure AD"</code></pre>
+<p>The maps:</p>
+<ul>
+<li>admin group Object ID → <code>cloud_controller.admin</code> (Administrative users)</li>
+<li>developer group Object ID → both <code>cloud_controller.read</code> and <code>cloud_controller.write</code></li>
+</ul>
+<p>Both are Entra ID <strong>group Object IDs</strong> (GUIDs), not group display names — confirm with the identity team which attribute your SAML assertion actually sends, since some Entra ID SAML configurations send the display name instead.</p>
+<h2 id="todo-validate-entry-group-interaction-with-cf-mgmt-do-we-need-it-1">TODO - validate entry group interaction with cf-mgmt - do we need it?</h2>
+<p>Once mapped, put the same real group Object IDs into the <code>saml_group:</code> entries in <code>cf-mgmt-config\&lt;FOUNDATION&gt;\*\spaceConfig.yml</code> (currently placeholders — see that folder's <code>README.md</code>) so cf-mgmt's role assignment and UAA's scope mapping point at the same groups.</p>
+<h2 id="bootstrap-the-config-directory">Bootstrap the Config Directory</h2>
+<p>cf-mgmt reads/writes a config folder per foundation, the same way <code>environments\&lt;foundation&gt;\</code> already holds this repo's OM/TAS vars files. A parallel <code>cf-mgmt-config\&lt;foundation&gt;\</code> folder keeps the two in sync without mixing them. Each folder needs the same <code>ldap.yml</code> stub used above before <code>export-config</code> will run against it:</p>
+<pre><code class="language-cmd">mkdir cf-mgmt-config\sandbox
+echo enabled: false &gt; cf-mgmt-config\sandbox\ldap.yml
+
+mkdir cf-mgmt-config\dev
+echo enabled: false &gt; cf-mgmt-config\dev\ldap.yml
+
+mkdir cf-mgmt-config\production
+echo enabled: false &gt; cf-mgmt-config\production\ldap.yml</code></pre>
+<p>Validate it — <code>export-config</code> is read-only (it only reads the foundation's current state and writes files locally), so it's a safe way to confirm the client can authenticate and actually see the foundation, without touching anything. <strong>cf-mgmt expects the config-dir to already contain a minimal <code>ldap.yml</code></strong> even when you're not using LDAP sync (this repo's setup authorizes users via <code>saml_group</code> references directly, per the org/space configuration guide) — create that stub first, or export-config fails with <code>Error reading file &lt;config-dir&gt;/ldap.yml: ... cannot find the file specified</code>:</p>
+<pre><code class="language-cmd">mkdir cf-mgmt-config\_client-check
+echo enabled: false &gt; cf-mgmt-config\_client-check\ldap.yml
+
+cf-mgmt export-config ^
+  --config-dir=cf-mgmt-config\_client-check ^
+  --system-domain=SYSTEM-DOMAIN ^
+  --user-id=cf-mgmt ^
+  --client-secret=YOUR-SECRET</code></pre>
+<p>If the client works, this exits cleanly and populates <code>cf-mgmt-config\_client-check\</code> with <code>orgs.yml</code> and a folder per org — open <code>orgs.yml</code> and spot-check that it lists orgs you recognize on the foundation. Delete <code>cf-mgmt-config\_client-check\</code> afterward; the real export in <a href="#bootstrap-the-config-directory">Bootstrap the Config Directory</a> below is what you'll actually keep.</p>
+<blockquote>
+<p><strong>Note:</strong> confirm the exact authority list, and the exact <code>ldap.yml</code> schema for a disabled/no-LDAP setup, against the current cf-mgmt docs for the version installed — both have changed across releases: <a href="https://github.com/vmware-tanzu-labs/cf-mgmt/tree/main/docs">https://github.com/vmware-tanzu-labs/cf-mgmt/tree/main/docs</a></p>
+</blockquote>
+<h1 id="seed-a-foundations-cf-mgmt-config-eg-cf-mgmt-configsandbox-directly-from-the-foundations-current-state">Seed a foundation's cf-mgmt config, e.g. <code>cf-mgmt-config\sandbox</code> directly from the foundation's current state:</h1>
+<pre><code class="language-cmd">cf-mgmt export-config ^
+  --config-dir=cf-mgmt-config\sandbox ^
+  --system-domain=SYSTEM-DOMAIN ^
+  --user-id=cf-mgmt ^
+  --client-secret=YOUR-SECRET</code></pre>
+<p>See the org/space/ASG configuration guide for how these files are structured and maintained going forward.</p>
+<h2 id="smoke-test">Smoke Test</h2>
+<p>Before wiring cf-mgmt into any automation, do a dry run against the config folder you just exported:</p>
+<pre><code class="language-cmd">cf-mgmt apply ^
+  --config-dir=cf-mgmt-config\sandbox ^
+  --system-domain=SYSTEM-DOMAIN ^
+  --user-id=cf-mgmt ^
+  --client-secret=YOUR-SECRET ^
+  --peek</code></pre>
+<p><code>--peek</code> prints the changes cf-mgmt would make without applying them — confirm the diff is empty (or expected) before dropping the flag.</p>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="unable-to-initialize-cf-mgmt-error-reading-file-ldapyml">"Unable to initialize cf-mgmt" / "Error reading file ...ldap.yml"</h3>
+<pre><code>E0803 09:19:11.955054 2444 export_config.go:21] Unable to initialize cf-mgmt. Error : Error reading file cf-mgmt-config\production/ldap.yml: open cf-mgmt-config\production/ldap.yml: The system cannot find the file specified.</code></pre>
+<p><strong>Cause:</strong> cf-mgmt requires <code>ldap.yml</code> to already exist in <code>--config-dir</code> before <code>export-config</code> (or <code>apply</code>) will run, even if you don't use LDAP sync — it's not something either command creates for you.</p>
+<p><strong>Fix:</strong> create a minimal disabled stub in that config-dir, then re-run:</p>
+<pre><code class="language-cmd">echo enabled: false &gt; cf-mgmt-config\production\ldap.yml</code></pre>
+<h3 id="getting-routing-groups-unauthorized">"Getting routing groups: unauthorized"</h3>
+<pre><code>E0803 09:36:33.781452 2808 export_config.go:54] Export failed with error:  Getting routing groups: unauthorized
+error: Getting routing groups: unauthorized</code></pre>
+<p><strong>Cause:</strong> this shows up at the very end of a run — orgs, spaces, named ASGs, quotas, and shared domains all export fine first, and only the last step (listing TCP router groups) fails. That's because <code>cloud_controller.admin</code> doesn't cover the Routing API; the client also needs <code>routing.router_groups.read</code>, which isn't in the authorities list further up in this doc until it's been added.</p>
+<p><strong>Fix:</strong> add the missing scope to the existing client and pull a fresh token before re-running (note it's <code>uaac client update</code>, not <code>client add</code>, since the client already exists):</p>
+<pre><code class="language-cmd">uaac target https://uaa.SYSTEM-DOMAIN  --skip-ssl-validation
+uaac token client get admin -s ADMIN-CLIENT-SECRET
+
+uaac client update cf-mgmt --authorities cloud_controller.admin,scim.read,scim.write,clients.read,clients.write,clients.secret,clients.admin,uaa.admin,routing.router_groups.read
+
+REM cf-mgmt gets its own token via client_credentials at run time, so no separate
+REM "uaac token client get cf-mgmt" step is needed — just re-run the export:
+cf-mgmt export-config --system-domain sys.SYSTEM-DOMAIN --user-id cf-mgmt --client-secret YOUR-SECRET --config-dir=cf-mgmt-config\production</code></pre>
+<p>If it still fails after updating authorities, double check the client actually picked up the change:</p>
+<pre><code class="language-cmd">uaac client get cf-mgmt</code></pre>
+<p>and confirm <code>routing.router_groups.read</code> appears in the <code>authorities</code> list returned — <strong>check the spelling carefully.</strong> It's easy to type <code>routing.router-groups.read</code> (hyphen) instead of <code>routing.router_groups.read</code> (underscore between <code>router</code> and <code>groups</code>). UAA happily stores the hyphenated version as a valid-looking scope with no error, but it doesn't match anything the Routing API checks for, so the export still fails with the exact same "unauthorized" message — just as if the scope were never added at all. If <code>uaac client update</code> doesn't seem to be taking effect, this typo is the first thing to rule out before suspecting a client-permissions issue.</p>
+<p>If the update genuinely isn't sticking (correct spelling, still missing after <code>uaac client get cf-mgmt</code>), that usually comes down to the <em>admin client's own</em> authorities — in UAA, a client generally can't grant a scope to another client unless it already holds that same scope itself, even with <code>uaa.admin</code>. Check <code>uaac client get admin</code> for <code>routing.router_groups.read</code> in its own authorities list; if it's missing there too, you'll need a client that already has it (often an internal platform client used by the router/routing-api components) or have whoever manages UAA add it directly.</p>
+<h2 id="references">References</h2>
+<ul>
+<li>cf-mgmt repo: <a href="https://github.com/vmware-tanzu-labs/cf-mgmt">https://github.com/vmware-tanzu-labs/cf-mgmt</a></li>
+<li>cf-mgmt docs: <a href="https://github.com/vmware-tanzu-labs/cf-mgmt/tree/main/docs">https://github.com/vmware-tanzu-labs/cf-mgmt/tree/main/docs</a></li>
+<li>Broadcom Support Portal: <a href="https://support.broadcom.com/">https://support.broadcom.com/</a></li>
+</ul>
+</body>
+</html>

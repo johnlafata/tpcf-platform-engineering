@@ -21,7 +21,7 @@ All automation scripts are Windows batch files designed to run on:
 
 This repository **requires** a running Ops Manager instance. You must deploy Ops Manager before proceeding with any automation scripts.
 
-📖 **[Deploy Ops Manager on vSphere](https://techdocs.broadcom.com/us/en/vmware-tanzu/platform/tanzu-operations-manager/3-2/tanzu-ops-manager/vsphere-deploy.html)**
+📖 **[Deploy Ops Manager on vSphere](https://techdocs.broadcom.com/us/en/vmware-tanzu/platform/tanzu-operations-manager/3-3/tanzu-ops-manager/vsphere-deploy.html)**
 
 **Critical information to document:**
 - ✓ Ops Manager URL/IP address
@@ -90,8 +90,9 @@ tpcf-platform-automation/
 │   ├── stage-product.bat                 # Stage uploaded products
 │   ├── backup-foundation-config.bat      # Backup configurations
 │   ├── test-om-interpolation.bat         # Test OM interpolation
-│   ├── create-cf-mgmt-uaa-client.bat     # Create/update the cf-mgmt UAA client
-│   └── map-entra-id-groups.bat           # Map Entra ID groups to UAA/CC scopes
+│   └── uaac/                             # Manual uaac steps (see below)
+│       ├── create-cf-mgmt-uaac-user.md          # Create/update the cf-mgmt UAA client
+│       └── map-uaac-groups-admin-developer.md   # Map Entra ID groups to UAA/CC scopes
 │
 ├── certs/                    # SSL certificate management
 │   ├── generate-openssl-certs-sbx.md     # Sandbox cert generation guide
@@ -131,7 +132,7 @@ These tools are required on your jumphost to run the automation scripts.
 4. **UAAC** - UAA client for user management
 5. **cf-mgmt** - Declarative org/space/user/ASG management (post-deployment) - see [cf-mgmt Installation Notes](docs/installation/CF-MGMT-INSTALLATION.md)
 
-JSON parsing in the ops-scripts (e.g. `create-cf-mgmt-uaa-client.bat`, `map-entra-id-groups.bat`) uses PowerShell's built-in `ConvertFrom-Json`, so `jq` is not required on Windows jumphosts.
+Creating the cf-mgmt UAA client and mapping Entra ID groups to UAA scopes are currently done by hand, following `ops-scripts\uaac\create-cf-mgmt-uaac-user.md` and `ops-scripts\uaac\map-uaac-groups-admin-developer.md` — see [cf-mgmt Installation Notes](docs/installation/CF-MGMT-INSTALLATION.md) and [README-uaa.md](README-uaa.md).
 
 ---
 
@@ -154,9 +155,7 @@ Your jumphost needs network access to:
 You need SSH access to Ops Manager or BOSH VMs for troubleshooting and maintenance.
 
 **Windows users:** You can use:
-- **OpenSSH for Windows** (built into Windows 10/11)
 - **PuTTY** and PuTTYgen for key generation
-- **Windows Subsystem for Linux (WSL)** for full Linux tooling
 
 **Generate SSH key (OpenSSH for Windows or Linux):**
 
@@ -164,11 +163,13 @@ You need SSH access to Ops Manager or BOSH VMs for troubleshooting and maintenan
 # Generate SSH key (if not already present)
 ssh-keygen -t rsa -b 4096 -C "ops-manager-key"
 
-# The public key will be added to Ops Manager during configuration
+# The public key will be needed to be added to Ops Manager during configuration
 # Private key used for SSH connections
 ```
 
 **Note:** The public key will be added to Ops Manager during Director configuration. Keep the private key secure.
+
+**Note:** The putty version of the key is needed to be used with PuTTY for SSH access on Windows. You can convert the OpenSSH private key to a PuTTY-compatible `.ppk` file using PuTTYgen.
 
 ---
 
@@ -191,6 +192,8 @@ copy env-creds\sandbox\om-env-redacted.yml env-creds\sandbox\om-env.yml
 notepad env-creds\sandbox\om-env.yml
 ```
 
+**Note:** Because we use SAML SSO for authentication, ensure that you have created a uaac client for om-automation with opsman privileges and ensure the environment credentials file contains the correct Ops Manager URL, om-automation client ID, and client secret before proceeding.
+
 ### 3. Backup Existing Configuration (if Ops Manager already configured)
 
 ```cmd
@@ -206,11 +209,16 @@ ops-scripts\configure-director.bat sandbox config-backup\<backup-folder>\directo
 REM Apply Director changes
 ops-scripts\apply-changes.bat sandbox p-bosh
 
+REM if necessary, re-import the tiles for each product we install
+
 REM Configure TAS using backed-up config
 ops-scripts\configure-product.bat sandbox cf config-backup\<backup-folder>\cf-config.yml
 
 REM Apply TAS changes
 ops-scripts\apply-changes.bat sandbox cf
+
+REM repeat for other products if needed (i.e. resource segments, hub, platform-services)
+
 ```
 
 **Note:** The scripts expect configuration files (typically extracted via backup). See the [Getting Started Guide](docs/installation/GETTING-STARTED.md) for complete workflow including initial setup

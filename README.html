@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>README</title>
+<style>
+body {
+  font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+  max-width: 900px;
+  margin: 2rem auto;
+  padding: 0 1.5rem;
+  line-height: 1.6;
+  color: #1a1a1a;
+}
+h1, h2, h3, h4, h5, h6 { line-height: 1.25; margin-top: 1.8em; }
+h1 { border-bottom: 2px solid #ddd; padding-bottom: 0.3em; }
+h2 { border-bottom: 1px solid #eee; padding-bottom: 0.3em; }
+code {
+  font-family: Consolas, "Courier New", monospace;
+  background: #f3f3f3;
+  padding: 0.15em 0.4em;
+  border-radius: 3px;
+  font-size: 0.92em;
+}
+pre {
+  background: #f6f8fa;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 1em;
+  overflow-x: auto;
+}
+pre code { background: none; padding: 0; }
+table { border-collapse: collapse; width: 100%; margin: 1em 0; }
+th, td { border: 1px solid #ddd; padding: 0.5em 0.8em; text-align: left; }
+th { background: #f6f8fa; }
+blockquote { border-left: 4px solid #ddd; margin-left: 0; padding-left: 1em; color: #555; }
+a { color: #0969da; }
+hr { border: none; border-top: 1px solid #ddd; margin: 2em 0; }
+img { max-width: 100%; }
+</style>
+</head>
+<body>
+<h1 id="tanzu-platform-cloud-foundry-configuration-repository">Tanzu Platform Cloud Foundry Configuration Repository</h1>
+<p>This repository contains Windows-based automation scripts and configurations for managing VMware Tanzu Platform for Cloud Foundry deployments using OM CLI.</p>
+<h2 id="platform-support">Platform Support</h2>
+<p><strong>Primary Platform:</strong> Windows (<code>.bat</code> batch scripts)</p>
+<p>All automation scripts are Windows batch files designed to run on:</p>
+<ul>
+<li>Windows 10/11</li>
+<li>Windows Server 2016+</li>
+<li>Windows jumphost environments</li>
+</ul>
+<p><strong>Alternative Platforms:</strong> The documentation references some Linux/Mac commands for SSH and certificate generation, but the core automation is Windows-based.</p>
+<h2 id="prerequisites">Prerequisites</h2>
+<p><strong>Before using this repository, you must have:</strong></p>
+<h3 id="ops-manager-deployed">✅ Ops Manager Deployed</h3>
+<p>This repository <strong>requires</strong> a running Ops Manager instance. You must deploy Ops Manager before proceeding with any automation scripts.</p>
+<p>📖 <strong><a href="https://techdocs.broadcom.com/us/en/vmware-tanzu/platform/tanzu-operations-manager/3-3/tanzu-ops-manager/vsphere-deploy.html">Deploy Ops Manager on vSphere</a></strong></p>
+<p><strong>Critical information to document:</strong></p>
+<ul>
+<li>✓ Ops Manager URL/IP address</li>
+<li>✓ Admin username and password</li>
+<li>✓ <strong>Decryption passphrase</strong> (⚠️ Store securely - cannot be recovered!)</li>
+<li>✓ SSH private key</li>
+</ul>
+<p><strong>See:</strong> <a href="docs/installation/GETTING-STARTED.html#phase-0-deploy-ops-manager-prerequisite">docs/installation/GETTING-STARTED.md - Phase 0</a> for detailed deployment guidance.</p>
+<h3 id="network-access">✅ Network Access</h3>
+<p>From your jumphost, you need connectivity to:</p>
+<ul>
+<li>Ops Manager: TCP 443</li>
+<li>BOSH Director: TCP 25555, 8443, 8844 (after Director deployment)</li>
+<li>vCenter: TCP 443</li>
+</ul>
+<h3 id="credentials-ready">✅ Credentials Ready</h3>
+<p>You'll need credentials for:</p>
+<ul>
+<li>Ops Manager (admin username/password)</li>
+<li>vCenter (username/password)</li>
+<li>Network configuration (IP ranges, gateways, DNS)</li>
+</ul>
+<p>---</p>
+<h2 id="documentation">📚 Documentation</h2>
+<p>Complete documentation is organized by lifecycle phase:</p>
+<h3 id="installation-setup">🚀 Installation &amp; Setup</h3>
+<p>Get started with setting up your jumphost and deploying your first foundation.</p>
+<ul>
+<li><strong><a href="docs/installation/GETTING-STARTED.html">Getting Started Guide</a></strong> - Complete end-to-end workflow from jumphost setup through first deployment (includes detailed CLI tool installation for Windows, Mac, and Linux)</li>
+<li><strong><a href="docs/installation/VARIABLES-CHECKLIST.html">Variables Collection Checklist</a></strong> - Systematic worksheet to collect all required variables for your environment</li>
+<li><strong><a href="docs/installation/CF-MGMT-INSTALLATION.html">cf-mgmt Installation Notes</a></strong> - Installing cf-mgmt and bootstrapping its config, for declarative org/space/user/ASG management once a foundation is up</li>
+</ul>
+<h3 id="operations-maintenance">⚙️ Operations &amp; Maintenance</h3>
+<p>Day-to-day operational procedures and credential management.</p>
+<ul>
+<li><strong><a href="docs/troubleshooting.html">Troubleshooting Guide</a></strong> - Common issues and solutions</li>
+</ul>
+<h3 id="temporary-shutdown">🔄 Temporary Shutdown</h3>
+<p>Procedures for temporarily stopping a foundation for maintenance.</p>
+<h2 id="repository-structure-multi-foundation-architecture">Repository Structure (Multi-Foundation Architecture)</h2>
+<pre><code>tpcf-platform-automation/
+├── env-creds/                # Multi-foundation credentials
+│   ├── sandbox/              # Sandbox environment
+│   │   └── om-env-redacted.yml           # Ops Manager connection (template)
+│   └── production/           # Production environment
+│       └── om-env-redacted.yml           # Ops Manager connection (template)
+│
+├── ops-scripts/              # Windows automation scripts
+│   ├── om-command.bat                    # Core OM CLI wrapper
+│   ├── verify-prerequisites.bat          # Check required tools
+│   ├── configure-director.bat            # Configure BOSH Director
+│   ├── configure-product.bat             # Configure TAS/products
+│   ├── apply-changes.bat                 # Apply changes to foundation
+│   ├── upload-product.bat                # Upload product tiles
+│   ├── stage-product.bat                 # Stage uploaded products
+│   ├── backup-foundation-config.bat      # Backup configurations
+│   ├── test-om-interpolation.bat         # Test OM interpolation
+│   └── uaac/                             # Manual uaac steps (see below)
+│       ├── create-cf-mgmt-uaac-user.md          # Create/update the cf-mgmt UAA client
+│       └── map-uaac-groups-admin-developer.md   # Map Entra ID groups to UAA/CC scopes
+│
+├── certs/                    # SSL certificate management
+│   ├── generate-openssl-certs-sbx.md     # Sandbox cert generation guide
+│   ├── generate-openssl-certs-prod.md    # Production cert generation guide
+│   ├── wildcard-cert-req-sbx-redacted.cnf
+│   └── wildcard-cert-req-prod-redacted.cnf
+│
+├── docs/                     # Documentation
+│   └── installation/         # Setup and installation guides
+│       ├── GETTING-STARTED.md
+│       └── CF-MGMT-INSTALLATION.md       # cf-mgmt install + config bootstrap
+│
+├── config-backup/            # Automated backups (gitignored)
+│
+├── foundation-setup-redacted.bat         # Foundation setup script
+└── create-orgs-spaces-redacted.bat       # Org/space creation script</code></pre>
+<h2 id="configuration-architecture">Configuration Architecture</h2>
+<p>This repository uses a <strong>foundation-based configuration</strong> approach:</p>
+<h3 id="1-foundation-credentials-env-credsfoundationom-env-redactedyml">1. Foundation Credentials (env-creds/&lt;foundation&gt;/om-env-redacted.yml)</h3>
+<ul>
+<li>Contains Ops Manager connection details for each foundation</li>
+<li>Includes target URL, authentication credentials, and SSL settings</li>
+<li>Template files provided - copy and customize with actual values</li>
+</ul>
+<h2 id="prerequisites-installing-cli-tools">Prerequisites - Installing CLI Tools</h2>
+<p>These tools are required on your jumphost to run the automation scripts.</p>
+<h3 id="required-tools">Required Tools</h3>
+<ol>
+<li><strong>OM CLI</strong> - Ops Manager automation</li>
+<li><strong>CF CLI</strong> - Cloud Foundry/TAS management (post-deployment)</li>
+<li><strong>git</strong> - Version control (required if managing configs in source control)</li>
+<li><strong>UAAC</strong> - UAA client for user management</li>
+<li><strong>cf-mgmt</strong> - Declarative org/space/user/ASG management (post-deployment) - see <a href="docs/installation/CF-MGMT-INSTALLATION.html">cf-mgmt Installation Notes</a></li>
+</ol>
+<p>Creating the cf-mgmt UAA client and mapping Entra ID groups to UAA scopes are currently done by hand, following <code>ops-scripts\uaac\create-cf-mgmt-uaac-user.md</code> and <code>ops-scripts\uaac\map-uaac-groups-admin-developer.md</code> — see <a href="docs/installation/CF-MGMT-INSTALLATION.html">cf-mgmt Installation Notes</a> and <a href="README-uaa.html">README-uaa.md</a>.</p>
+<p>---</p>
+<h3 id="installation-guides">Installation Guides</h3>
+<p>All installation instructions (Windows, Mac, Linux) are included in the <strong><a href="docs/installation/GETTING-STARTED.html">Getting Started Guide</a></strong>.</p>
+<p>---</p>
+<h3 id="network-requirements">Network Requirements</h3>
+<p>Your jumphost needs network access to:</p>
+<ul>
+<li><strong>Ops Manager</strong> (port 443)</li>
+<li><strong>vCenter</strong> (port 443) - if using vSphere</li>
+<li><strong>TAS API</strong> (port 443) - for CF CLI</li>
+<li><strong>Internet</strong> (for downloading tiles and stemcells) - or internal repository</li>
+</ul>
+<h3 id="ssh-access">SSH Access</h3>
+<p>You need SSH access to Ops Manager or BOSH VMs for troubleshooting and maintenance.</p>
+<p><strong>Windows users:</strong> You can use:</p>
+<ul>
+<li><strong>PuTTY</strong> and PuTTYgen for key generation</li>
+</ul>
+<p><strong>Generate SSH key (OpenSSH for Windows or Linux):</strong></p>
+<pre><code class="language-bash"># Generate SSH key (if not already present)
+ssh-keygen -t rsa -b 4096 -C "ops-manager-key"
+
+# The public key will be needed to be added to Ops Manager during configuration
+# Private key used for SSH connections</code></pre>
+<p><strong>Note:</strong> The public key will be added to Ops Manager during Director configuration. Keep the private key secure.</p>
+<p><strong>Note:</strong> The putty version of the key is needed to be used with PuTTY for SSH access on Windows. You can convert the OpenSSH private key to a PuTTY-compatible <code>.ppk</code> file using PuTTYgen.</p>
+<p>---</p>
+<h2 id="quick-start">Quick Start</h2>
+<p>See full documentation in the README sections below.</p>
+<h3 id="1-verify-prerequisites">1. Verify Prerequisites</h3>
+<pre><code class="language-cmd">ops-scripts\verify-prerequisites.bat</code></pre>
+<h3 id="2-configure-environment-credentials">2. Configure Environment Credentials</h3>
+<p>Copy and edit the environment credentials file with your Ops Manager details:</p>
+<pre><code class="language-cmd">copy env-creds\sandbox\om-env-redacted.yml env-creds\sandbox\om-env.yml
+notepad env-creds\sandbox\om-env.yml</code></pre>
+<p><strong>Note:</strong> Because we use SAML SSO for authentication, ensure that you have created a uaac client for om-automation with opsman privileges and ensure the environment credentials file contains the correct Ops Manager URL, om-automation client ID, and client secret before proceeding.</p>
+<h3 id="3-backup-existing-configuration-if-ops-manager-already-configured">3. Backup Existing Configuration (if Ops Manager already configured)</h3>
+<pre><code class="language-cmd">ops-scripts\backup-foundation-config.bat sandbox</code></pre>
+<h3 id="4-configure-and-deploy">4. Configure and Deploy</h3>
+<pre><code class="language-cmd">REM Configure BOSH Director using backed-up config
+ops-scripts\configure-director.bat sandbox config-backup\&lt;backup-folder&gt;\director-config.yml
+
+REM Apply Director changes
+ops-scripts\apply-changes.bat sandbox p-bosh
+
+REM if necessary, re-import the tiles for each product we install
+
+REM Configure TAS using backed-up config
+ops-scripts\configure-product.bat sandbox cf config-backup\&lt;backup-folder&gt;\cf-config.yml
+
+REM Apply TAS changes
+ops-scripts\apply-changes.bat sandbox cf
+
+REM repeat for other products if needed (i.e. resource segments, hub, platform-services)
+</code></pre>
+<p><strong>Note:</strong> The scripts expect configuration files (typically extracted via backup). See the <a href="docs/installation/GETTING-STARTED.html">Getting Started Guide</a> for complete workflow including initial setup</p>
+</body>
+</html>

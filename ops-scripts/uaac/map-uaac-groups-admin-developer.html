@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>map-uaac-groups-admin-developer</title>
+<style>
+body {
+  font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+  max-width: 900px;
+  margin: 2rem auto;
+  padding: 0 1.5rem;
+  line-height: 1.6;
+  color: #1a1a1a;
+}
+h1, h2, h3, h4, h5, h6 { line-height: 1.25; margin-top: 1.8em; }
+h1 { border-bottom: 2px solid #ddd; padding-bottom: 0.3em; }
+h2 { border-bottom: 1px solid #eee; padding-bottom: 0.3em; }
+code {
+  font-family: Consolas, "Courier New", monospace;
+  background: #f3f3f3;
+  padding: 0.15em 0.4em;
+  border-radius: 3px;
+  font-size: 0.92em;
+}
+pre {
+  background: #f6f8fa;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 1em;
+  overflow-x: auto;
+}
+pre code { background: none; padding: 0; }
+table { border-collapse: collapse; width: 100%; margin: 1em 0; }
+th, td { border: 1px solid #ddd; padding: 0.5em 0.8em; text-align: left; }
+th { background: #f6f8fa; }
+blockquote { border-left: 4px solid #ddd; margin-left: 0; padding-left: 1em; color: #555; }
+a { color: #0969da; }
+hr { border: none; border-top: 1px solid #ddd; margin: 2em 0; }
+img { max-width: 100%; }
+</style>
+</head>
+<body>
+<h1 id="map-entra-id-groups-to-uaa-scopes">Map Entra ID Groups to UAA Scopes</h1>
+<p>Manual <code>uaac</code> command reference for mapping Entra ID (Azure AD) SAML group Object IDs to UAA/Cloud Controller scopes.</p>
+<p>The Object IDs and <code>--origin "Azure AD"</code> below  are written directly into this file — edit them here if they change for a given foundation or product. Tanzu Hub required --origin "azure-ad" instead of "Azure AD".</p>
+<p>See <a href="../../docs/installation/CF-MGMT-INSTALLATION.html"><code>docs/installation/CF-MGMT-INSTALLATION.md</code></a> for full context.</p>
+<pre><code class="language-cmd">uaac target https://uaa.&lt;sys-domain&gt; --skip-ssl-validation
+
+uaac token client get admin -s ADMIN-CLIENT-SECRET
+
+REM permissions to Administrators
+uaac group map --name cloud_controller.admin "074ca041-070f-4842-bf06-cdcf2161d9c7" --origin "Azure AD"
+
+REM permissions to Developers
+uaac group map --name cloud_controller.read "66805d4e-7fc0-4dfd-a32b-8fed56ee8574" --origin "Azure AD"
+uaac group map --name cloud_controller.write "66805d4e-7fc0-4dfd-a32b-8fed56ee8574" --origin "Azure AD"</code></pre>
+<p>Both IDs are Entra ID <strong>group Object IDs</strong> (GUIDs), not group display names — confirm with the identity team which attribute your SAML assertion actually sends.</p>
+</body>
+</html>

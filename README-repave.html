@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>README-repave</title>
+<style>
+body {
+  font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+  max-width: 900px;
+  margin: 2rem auto;
+  padding: 0 1.5rem;
+  line-height: 1.6;
+  color: #1a1a1a;
+}
+h1, h2, h3, h4, h5, h6 { line-height: 1.25; margin-top: 1.8em; }
+h1 { border-bottom: 2px solid #ddd; padding-bottom: 0.3em; }
+h2 { border-bottom: 1px solid #eee; padding-bottom: 0.3em; }
+code {
+  font-family: Consolas, "Courier New", monospace;
+  background: #f3f3f3;
+  padding: 0.15em 0.4em;
+  border-radius: 3px;
+  font-size: 0.92em;
+}
+pre {
+  background: #f6f8fa;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 1em;
+  overflow-x: auto;
+}
+pre code { background: none; padding: 0; }
+table { border-collapse: collapse; width: 100%; margin: 1em 0; }
+th, td { border: 1px solid #ddd; padding: 0.5em 0.8em; text-align: left; }
+th { background: #f6f8fa; }
+blockquote { border-left: 4px solid #ddd; margin-left: 0; padding-left: 1em; color: #555; }
+a { color: #0969da; }
+hr { border: none; border-top: 1px solid #ddd; margin: 2em 0; }
+img { max-width: 100%; }
+</style>
+</head>
+<body>
+<p>REM This script is intended to be used as a guide for re-installing cf on a sandbox environment. It is not intended to be run as-is, but rather to be edited and customized as necessary for your specific environment and requirements.</p>
+<p>REM backup the installation ops-scripts\backup-foundation.bat sandbox</p>
+<p>REM Remove the old installation (if necessary) ops-scripts\om-command.bat sandbox delete-installation</p>
+<p>REM after edit and remove guids for resource groups in the director-config.yml, reconfigure the director ops-scripts\configure-director.bat sandbox config-backup\sandbox-20260528-143944\director-config.yml</p>
+<p>REM upload and stage cf tile REM upload cf product ops-scripts\upload-product.bat sandbox downloaded-products\srt-10.4.2-build.2.pivotal</p>
+<p>REM stage cf product (it was already uploaded) ops-scripts\stage-product.bat sandbox cf 10.4.2</p>
+<p>REM configure cf ops-scripts\om-command.bat sandbox configure-product /c config-backup\sandbox-20260525-111410\cf-config.yml</p>
+<p>REM restore foundation services and domain cp foundation-setup-redacted.bat foundation-setup.bat</p>
+<p>REM edit the foundation-setup.bat file to set add the api endppoint, admin password, and other necessary variables, then execute it to complete the installation. REM then execute foundation-setup.bat to complete the installation</p>
+<p>REM execute orgs and spaces setup cp create-orgs-spaces-redacted.bat create-orgs-spaces.bat</p>
+<p>REM edit the create-orgs-spaces.bat file to set add the api endppoint, admin password, and other necessary variables, then execute it to complete the installation. REM then execute create-orgs-spaces.bat to complete the installation</p>
+<p>REM stage and configure any other tiles</p>
+</body>
+</html>

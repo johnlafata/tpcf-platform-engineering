@@ -40,7 +40,7 @@ If you're deploying a new Tanzu foundation from scratch, you need to deploy Ops 
 
    After deploying the OVA:
 
-   📖 **[Starting Tanzu Operations Manager](https://techdocs.broadcom.com/us/en/vmware-tanzu/platform/tanzu-operations-manager/3-2/tanzu-ops-manager/vsphere-deploy.html#start-tanzu-operations-manager)**
+   📖 **[Starting Tanzu Operations Manager](https://techdocs.broadcom.com/us/en/vmware-tanzu/platform/tanzu-operations-manager/3-3/tanzu-ops-manager/vsphere-deploy.html#start-tanzu-operations-manager)**
 
    ```bash
    # Power on the VM in vSphere
@@ -148,7 +148,7 @@ Git is a **prerequisite** for managing platform automation configurations.
    bosh -v
    ```
 
-JSON parsing in the ops-scripts (e.g. `create-cf-mgmt-uaa-client.bat`, `map-entra-id-groups.bat`) uses PowerShell's built-in `ConvertFrom-Json`, which ships with Windows -- no separate JSON tool needs to be installed here.
+Creating the cf-mgmt UAA client and mapping Entra ID groups to UAA scopes are currently done by hand, following the command references in `ops-scripts\uaac\create-cf-mgmt-uaac-user.md` and `ops-scripts\uaac\map-uaac-groups-admin-developer.md` -- see `docs\installation\CF-MGMT-INSTALLATION.md`.
 
 #### Step 5: Install UAAC (for SAML/OIDC authentication)
 
@@ -218,205 +218,13 @@ brew install cloudfoundry/tap/bosh-cli
 brew install cloudfoundry/tap/cf-cli@8
 ```
 
----
 
-## Phase 2: Collect Variables
 
-### Step 1: Fill Out the Checklist
-
-Open `VARIABLES-CHECKLIST.md` and collect these details:
-
-**Ops Manager:**
-- [ ] Ops Manager URL/IP
-- [ ] Admin username and password
-
-**vCenter:**
-- [ ] vCenter host, username, password
-- [ ] Datacenter name
-- [ ] Cluster name
-- [ ] Resource pool name
-- [ ] Datastore names
-
-**Networks (3 required):**
-- [ ] Infrastructure: name, port group, CIDR, gateway, DNS
-- [ ] Apps: name, port group, CIDR, gateway, DNS
-- [ ] Services: name, port group, CIDR, gateway, DNS
-
-**TAS Domains:**
-- [ ] System domain (e.g., `sys.sbx.example.com`)
-- [ ] Apps domain (e.g., `apps.sbx.example.com`)
-
-### Step 2: Update Vars Files
-
-Edit the vars files with your collected values using your preferred text editor:
-
-**Windows:**
-```powershell
-# Director variables
-notepad environments\sandbox\director-vars.yml
-# or use: code, notepad++, or any text editor
-
-# CF variables
-notepad environments\sandbox\cf-vars.yml
-```
-
-**Linux/Mac:**
-```bash
-# Director variables
-vim environments/sandbox/director-vars.yml
-# or use: nano, code, or any text editor
-
-# CF variables
-vim environments/sandbox/cf-vars.yml
-```
-
-**Update these sections:**
-- vCenter Configuration
-- Availability Zones
-- Network Configuration
-- system_domain
-- apps_domain
-- insecure_docker_registry (if applicable)
-
----
-
-## Phase 3: Deploy
-
-### Step 1: Backup Current State (if re-deploying)
-
-**Windows:**
-```batch
-ops-scripts\backup-foundation-config.bat sandbox
-```
-
-### Step 2: Deploy BOSH Director
-
-**Windows:**
-```batch
-REM Configure Director
-ops-scripts\configure-director.bat sandbox config-backup\sandbox-TIMESTAMP\director-config.yml
-
-REM Apply changes
-ops-scripts\apply-changes.bat sandbox
-```
-
-**What this does:**
-1. Read the director configuration file
-2. Apply configuration to Ops Manager
-3. Deploy the Director (takes 20-30 minutes)
-
-### Step 3: Upload and Stage TAS Tile
-
-Download TAS tile first, then upload:
-
-**Windows:**
-```batch
-ops-scripts\upload-product.bat sandbox C:\path\to\cf-10.0.5.pivotal
-ops-scripts\stage-product.bat sandbox cf 10.0.5
-```
-
-### Step 4: Configure SRT ( SMALL RUNTIME CF)
-
-**Windows:**
-```batch
-ops-scripts\configure-product.bat sandbox cf
-```
-
-**What this does:**
-1. Read products/cf/config.yml
-2. Interpolate with environments/sandbox/cf-vars.yml
-3. Apply configuration
-
-### Step 5: Deploy TAS
-
-**Windows:**
-```batch
-ops-scripts\apply-changes.bat sandbox cf
-```
-
-This deploys TAS (takes 45-60 minutes)
-
-### Step 6: Verify Deployment
-
-**CF CLI commands are the same on all platforms:**
-
-```bash
-# Target the API
-cf api https://api.sys.sbx.example.com --skip-ssl-validation
-
-# Login as admin (get credentials from Ops Manager)
-cf login
-
-# Create an org and space
-cf create-org test-org
-cf create-space -o test-org test-space
-cf target -o test-org -s test-space
-
-# Deploy a test app
-cf push test-app
-```
-
----
-
-## Troubleshooting
-
-### "Variable not found" errors
-
-```
-Error: could not render variables: variable 'vcenter_datacenter' not defined
-```
-
-**Fix:** Edit `environments/sandbox/director-vars.yml` and add the missing variable
-
-### "Cannot connect to CredHub"
-
-```
-Error: connection refused
-```
-
-**Fix:**
-1. Ensure BOSH Director is deployed
-2. Re-run `.\ops-scripts\setup-credhub.bat sandbox`
-
-### "Ops Manager connection failed"
-
-```
-Error: could not execute request
-```
-
-**Fix:**
-1. Verify Ops Manager URL in `env-creds\sandbox\om-env.yml`
-2. Check network connectivity: `curl -k https://OPSMGR-IP`
-3. Verify credentials are correct
-
-### Apply changes fails
-
-```
-Error: task failed
-```
-
-**Fix:**
-1. Check Ops Manager UI for detailed error
-2. Review BOSH logs: `bosh -e ENV -d DEPLOYMENT logs`
-3. Check BOSH task output for specific errors
 
 ---
 
 ## Daily Operations
-
 ### Configuration Changes
-
-**Windows:**
-```batch
-REM 1. Edit vars file
-notepad environments\sandbox\cf-vars.yml
-
-REM 2. Apply configuration
-ops-scripts\configure-product.bat sandbox cf
-
-REM 3. Deploy changes
-ops-scripts\apply-changes.bat sandbox cf
-```
 
 ### Tile Upgrades
 
@@ -472,7 +280,7 @@ ops-scripts\apply-changes.bat sandbox cf
 
 ```bash
 # Update the remote URL if needed
-git remote set-url origin git@github.com:your-org/tpcf-platform-automation-workshop.git
+git remote set-url origin git@github.com:your-org/tpcf-platform-engineering.git
 
 # Verify the remote
 git remote -v
@@ -485,39 +293,3 @@ git commit -m "Update foundation configuration"
 git push origin main
 ```
 
-### 2. Setting Up Additional Foundations
-
-Once sandbox is working:
-
-**Windows:**
-```batch
-REM Copy sandbox configuration
-xcopy /E /I environments\sandbox environments\prod
-
-REM Edit production values
-notepad environments\prod\director-vars.yml
-notepad environments\prod\cf-vars.yml
-
-REM Create production credentials file
-copy env-creds\sandbox\om-env.yml env-creds\prod\om-env.yml
-notepad env-creds\prod\om-env.yml
-
-REM Deploy production
-ops-scripts\configure-director.bat prod director-config.yml
-ops-scripts\apply-changes.bat prod
-```
-
-### 3. Documentation References
-
-- `VARIABLES-CHECKLIST.md` - Complete variable collection guide
-- `README.md` - Full documentation
-- Tanzu documentation: https://techdocs.broadcom.com/tanzu
-
----
-
-## Getting Help
-
-- Review script error output carefully
-- Check Ops Manager UI for detailed errors
-- Review BOSH logs for deployment issues
-- Consult Tanzu documentation: https://techdocs.broadcom.com/tanzu

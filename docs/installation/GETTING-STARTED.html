@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>GETTING-STARTED</title>
+<style>
+body {
+  font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+  max-width: 900px;
+  margin: 2rem auto;
+  padding: 0 1.5rem;
+  line-height: 1.6;
+  color: #1a1a1a;
+}
+h1, h2, h3, h4, h5, h6 { line-height: 1.25; margin-top: 1.8em; }
+h1 { border-bottom: 2px solid #ddd; padding-bottom: 0.3em; }
+h2 { border-bottom: 1px solid #eee; padding-bottom: 0.3em; }
+code {
+  font-family: Consolas, "Courier New", monospace;
+  background: #f3f3f3;
+  padding: 0.15em 0.4em;
+  border-radius: 3px;
+  font-size: 0.92em;
+}
+pre {
+  background: #f6f8fa;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 1em;
+  overflow-x: auto;
+}
+pre code { background: none; padding: 0; }
+table { border-collapse: collapse; width: 100%; margin: 1em 0; }
+th, td { border: 1px solid #ddd; padding: 0.5em 0.8em; text-align: left; }
+th { background: #f6f8fa; }
+blockquote { border-left: 4px solid #ddd; margin-left: 0; padding-left: 1em; color: #555; }
+a { color: #0969da; }
+hr { border: none; border-top: 1px solid #ddd; margin: 2em 0; }
+img { max-width: 100%; }
+</style>
+</head>
+<body>
+<h1 id="getting-started-quick-workflow">Getting Started - Quick Workflow</h1>
+<p>This guide provides a streamlined workflow for setting up and deploying a Tanzu foundation using platform automation.</p>
+<h2 id="overview">Overview</h2>
+<p>The process follows these steps:</p>
+<ol>
+<li><strong>Deploy Ops Manager</strong> (prerequisite)</li>
+<li><strong>Setup jumphost</strong> with required CLI tools</li>
+<li><strong>Collect variables</strong> for your environment</li>
+<li><strong>Validate</strong> configuration</li>
+<li><strong>Deploy</strong></li>
+</ol>
+<p>---</p>
+<h2 id="phase-0-deploy-ops-manager-prerequisite">Phase 0: Deploy Ops Manager (Prerequisite)</h2>
+<p><strong>Before starting this workflow, you must have Ops Manager deployed and running.</strong></p>
+<h3 id="new-ops-manager-deployment">New Ops Manager Deployment</h3>
+<p>If you're deploying a new Tanzu foundation from scratch, you need to deploy Ops Manager first:</p>
+<ol>
+<li><strong>Download Ops Manager OVA</strong> from <a href="https://support.broadcom.com/">Broadcom Support Portal</a> - Navigate to: VMware Tanzu → Tanzu Operations Manager - Download the appropriate version for your environment</li>
+</ol>
+<ol>
+<li><strong>Deploy Ops Manager OVA to vSphere</strong></li>
+</ol>
+<p>Follow the official deployment guide:</p>
+<p>📖 <strong><a href="https://techdocs.broadcom.com/us/en/vmware-tanzu/platform/tanzu-operations-manager/3-2/tanzu-ops-manager/vsphere-deploy.html">Deploying Ops Manager on vSphere</a></strong></p>
+<p>Key deployment parameters you'll need:</p>
+<ul>
+<li>vCenter datacenter, cluster, resource pool</li>
+<li>Datastore for VM storage</li>
+<li>Network configuration (IP, netmask, gateway, DNS)</li>
+</ul>
+<ol>
+<li><strong>Start Ops Manager VM</strong></li>
+</ol>
+<p>After deploying the OVA:</p>
+<p>📖 <strong><a href="https://techdocs.broadcom.com/us/en/vmware-tanzu/platform/tanzu-operations-manager/3-3/tanzu-ops-manager/vsphere-deploy.html#start-tanzu-operations-manager">Starting Tanzu Operations Manager</a></strong></p>
+<p>```bash # Power on the VM in vSphere # Navigate to: VM → Power → Power On</p>
+<p># Wait 5-10 minutes for Ops Manager to start # Access the UI at: <a href="https://&lt;opsmgr-ip&gt;">https://&lt;opsmgr-ip&gt;</a> ```</p>
+<ol>
+<li><strong>Complete Initial Setup</strong></li>
+</ol>
+<ul>
+<li>Access Ops Manager UI: <code>https://&lt;opsmgr-ip&gt;</code></li>
+<li>Configure authentication (internal or LDAP/SAML)</li>
+<li>Specify an Admin username and password</li>
+<li><strong>Decryption passphrase</strong> (⚠️ CRITICAL - store securely!)</li>
+</ul>
+<ol>
+<li><strong>🔴 CRITICAL: Document These Credentials</strong></li>
+</ol>
+<p>Store in a secure password manager <strong>immediately</strong>:</p>
+<ul>
+<li>☐ <strong>Decryption Passphrase</strong> (cannot be recovered if lost!)</li>
+<li>☐ Admin username and password</li>
+<li>☐ Ops Manager URL/IP address</li>
+<li>☐ SSH private key associated with public key you uploaded during deployment.</li>
+</ul>
+<p><strong>Why this matters:</strong> Without the decryption passphrase, you cannot restart or recover Ops Manager if the VM is powered off.</p>
+<h3 id="verification">Verification</h3>
+<p>Before proceeding, verify Ops Manager is accessible:</p>
+<pre><code class="language-bash"># Test connectivity
+curl -k https://&lt;opsmgr-ip&gt;
+
+# Should return HTML (Ops Manager login page)</code></pre>
+<p>Once Ops Manager is running and accessible, proceed to Phase 1.</p>
+<p>---</p>
+<h2 id="phase-1-jumphost-setup-one-time">Phase 1: Jumphost Setup (One-time)</h2>
+<h3 id="prerequisites">Prerequisites</h3>
+<p><strong>Git</strong> is required for managing configuration in source control and must be installed first.</p>
+<h3 id="windows-installation-guide">Windows Installation Guide</h3>
+<h4 id="step-1-create-installation-directory">Step 1: Create Installation Directory</h4>
+<p>Create a directory for CLI tools and add it to your PATH:</p>
+<pre><code class="language-cmd">cd %LOCALAPPDATA%
+mkdir Programs\platform-automation
+set PATH=%PATH%;%LOCALAPPDATA%\Programs\platform-automation</code></pre>
+<blockquote>
+<p><strong>Tip:</strong> To make the PATH change permanent, add <code>%LOCALAPPDATA%\Programs\platform-automation</code> via <strong>System Properties → Environment Variables</strong>.</p>
+</blockquote>
+<h4 id="step-2-install-git-required">Step 2: Install Git (Required)</h4>
+<p>Git is a <strong>prerequisite</strong> for managing platform automation configurations.</p>
+<ol>
+<li>Download Git for Windows: <a href="https://git-scm.com/download/win">https://git-scm.com/download/win</a></li>
+<li>Run the installer</li>
+<li>Use default options (includes Git Bash)</li>
+<li>Verify installation: ``<code>cmd git --version </code>``</li>
+</ol>
+<h4 id="step-3-install-required-cli-tools">Step 3: Install Required CLI Tools</h4>
+<h5 id="1-om-cli-ops-manager-automation">1. OM CLI (Ops Manager automation)</h5>
+<ol>
+<li>Download from: <a href="https://github.com/pivotal-cf/om/releases">https://github.com/pivotal-cf/om/releases</a></li>
+<li>Get <code>om-windows-amd64-7.20.1.exe</code> (or latest version)</li>
+<li>Rename to <code>om.exe</code></li>
+<li>Move <code>om.exe</code> to <code>%LOCALAPPDATA%\Programs\platform-automation</code></li>
+<li>Verify: ``<code>powershell om version </code>``</li>
+</ol>
+<h5 id="2-cf-cli-cloud-foundrytas-management">2. CF CLI (Cloud Foundry/TAS management)</h5>
+<ol>
+<li>Download Windows installer from: <a href="https://github.com/cloudfoundry/cli/releases">https://github.com/cloudfoundry/cli/releases</a></li>
+<li>Run <code>cf8-cli-installer_*_x86-64.msi</code></li>
+<li>Follow the installation wizard</li>
+<li>Verify: ``<code>cmd cf version </code>``</li>
+</ol>
+<h5 id="3-bosh-cli-optional-can-be-run-on-bosh-director-vm">3. BOSH CLI (Optional - can be run on bosh director vm)</h5>
+<ol>
+<li>Download from: <a href="https://github.com/cloudfoundry/bosh-cli/releases">https://github.com/cloudfoundry/bosh-cli/releases</a></li>
+<li>Get <code>bosh-cli-7.6.2-windows-amd64.exe</code> (or latest version)</li>
+<li>Rename to <code>bosh.exe</code></li>
+<li>Move to <code>%LOCALAPPDATA%\Programs\platform-automation</code></li>
+<li>Verify: ``<code>cmd bosh -v </code>``</li>
+</ol>
+<p>Creating the cf-mgmt UAA client and mapping Entra ID groups to UAA scopes are currently done by hand, following the command references in <code>ops-scripts\uaac\create-cf-mgmt-uaac-user.md</code> and <code>ops-scripts\uaac\map-uaac-groups-admin-developer.md</code> -- see <code>docs\installation\CF-MGMT-INSTALLATION.md</code>.</p>
+<h4 id="step-5-install-uaac-for-samloidc-authentication">Step 5: Install UAAC (for SAML/OIDC authentication)</h4>
+<p>UAAC is needed to create the client for the Ops Manager API when using SAML or OIDC authentication.</p>
+<p><strong>UAAC requires Ruby:</strong></p>
+<ol>
+<li>Download Ruby+Devkit from: <a href="https://rubyinstaller.org/downloads/">https://rubyinstaller.org/downloads/</a></li>
+<li>Get Ruby+Devkit 3.4.9.1 (x64) or latest version</li>
+<li>Run the installer, choose the base install</li>
+<li>Install UAAC: ``<code>cmd gem install cf-uaac </code>``</li>
+</ol>
+<p><strong>Configure UAAC for Ops Manager (if using SAML/OIDC):</strong></p>
+<ol>
+<li>Target your Ops Manager UAA server: ``<code>cmd uaac target https://OPS-MAN-FQDN/uaa  --skip-ssl-validation </code>`<code> Example: </code>`<code>cmd uaac target https://opsmgr-sbx.YOUR-DOMAIN/uaa  --skip-ssl-validation </code>``</li>
+</ol>
+<ol>
+<li>Retrieve your UAA token: ``<code>cmd uaac token sso get Client ID: opsman Client secret: [Leave Blank] Passcode: [Get from https://OPS-MAN-FQDN/uaa/passcode] </code>``</li>
+</ol>
+<ol>
+<li>Create UAAC client for automation: ``<code>cmd uaac client add om-automation --secret YOUR-SECRET --scope opsman.admin --authorized_grant_types client_credentials --authorities opsman.admin --access_token_validity 43200 </code>``</li>
+</ol>
+<ol>
+<li>Validate the client: ``<code>cmd set OM_TARGET=opsmgr-sbx.YOUR-DOMAIN set OM_CLIENT_ID=om-automation set OM_CLIENT_SECRET=YOUR-SECRET om products </code>``</li>
+</ol>
+<h4 id="step-6-verify-all-prerequisites">Step 6: Verify All Prerequisites</h4>
+<p>Run the verification script to check all installations:</p>
+<pre><code class="language-powershell">.\ops-scripts\verify-prerequisites.bat</code></pre>
+<h3 id="maclinux-installation-homebrew">Mac/Linux Installation (Homebrew)</h3>
+<pre><code class="language-bash"># Install Git (if not already installed)
+brew install git
+
+# Install platform automation tools
+brew tap pivotal-cf/om https://github.com/pivotal-cf/om
+brew install om
+brew install cloudfoundry/tap/credhub-cli
+brew install cloudfoundry/tap/bosh-cli
+brew install cloudfoundry/tap/cf-cli@8</code></pre>
+<p>---</p>
+<h2 id="daily-operations">Daily Operations</h2>
+<h3 id="configuration-changes">Configuration Changes</h3>
+<h3 id="tile-upgrades">Tile Upgrades</h3>
+<p><strong>Windows:</strong></p>
+<pre><code class="language-batch">REM 1. Backup current config
+ops-scripts\backup-foundation-config.bat sandbox
+
+REM 2. Upload new tile
+ops-scripts\upload-product.bat sandbox C:\path\to\cf-10.1.0.pivotal
+
+REM 3. Stage new version
+ops-scripts\stage-product.bat sandbox cf 10.1.0
+
+REM 4. Re-apply configuration (uses existing vars)
+ops-scripts\configure-product.bat sandbox cf
+
+REM 5. Deploy
+ops-scripts\apply-changes.bat sandbox cf</code></pre>
+<p>---</p>
+<h2 id="quick-reference">Quick Reference</h2>
+<p><strong>Windows:</strong></p>
+<pre><code class="language-batch">REM Backup configuration
+ops-scripts\backup-foundation-config.bat sandbox
+
+REM Configure Director
+ops-scripts\configure-director.bat sandbox director-config.yml
+
+REM Upload and stage product
+ops-scripts\upload-product.bat sandbox product.pivotal
+ops-scripts\stage-product.bat sandbox cf 10.0.5
+
+REM Configure product
+ops-scripts\configure-product.bat sandbox cf
+
+REM Apply changes
+ops-scripts\apply-changes.bat sandbox
+ops-scripts\apply-changes.bat sandbox cf</code></pre>
+<p>---</p>
+<h2 id="next-steps-after-initial-deployment">Next Steps After Initial Deployment</h2>
+<h3 id="1-commit-configuration-to-git">1. Commit Configuration to Git</h3>
+<p><strong>Git commands are the same on all platforms:</strong></p>
+<pre><code class="language-bash"># Update the remote URL if needed
+git remote set-url origin git@github.com:your-org/tpcf-platform-engineering.git
+
+# Verify the remote
+git remote -v
+
+# Stage and commit changes
+git add environments/ products/ ops-scripts/ .gitignore
+git commit -m "Update foundation configuration"
+
+# Push changes
+git push origin main</code></pre>
+</body>
+</html>

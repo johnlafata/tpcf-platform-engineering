@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>README-uaa</title>
+<style>
+body {
+  font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+  max-width: 900px;
+  margin: 2rem auto;
+  padding: 0 1.5rem;
+  line-height: 1.6;
+  color: #1a1a1a;
+}
+h1, h2, h3, h4, h5, h6 { line-height: 1.25; margin-top: 1.8em; }
+h1 { border-bottom: 2px solid #ddd; padding-bottom: 0.3em; }
+h2 { border-bottom: 1px solid #eee; padding-bottom: 0.3em; }
+code {
+  font-family: Consolas, "Courier New", monospace;
+  background: #f3f3f3;
+  padding: 0.15em 0.4em;
+  border-radius: 3px;
+  font-size: 0.92em;
+}
+pre {
+  background: #f6f8fa;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 1em;
+  overflow-x: auto;
+}
+pre code { background: none; padding: 0; }
+table { border-collapse: collapse; width: 100%; margin: 1em 0; }
+th, td { border: 1px solid #ddd; padding: 0.5em 0.8em; text-align: left; }
+th { background: #f6f8fa; }
+blockquote { border-left: 4px solid #ddd; margin-left: 0; padding-left: 1em; color: #555; }
+a { color: #0969da; }
+hr { border: none; border-top: 1px solid #ddd; margin: 2em 0; }
+img { max-width: 100%; }
+</style>
+</head>
+<body>
+<h1 id="uaa-accounts-group-memberships">UAA Accounts &amp; Group Memberships</h1>
+<p>A TAS foundation runs <strong>three separate UAA installations</strong>, each with its own accounts, clients, scopes, and group mappings. They don't share data — a query against one tells you nothing about the others, and a token issued by one is rejected by the others. This doc summarizes what lives where, where to find the admin credentials that let you list users and inspect group mappings, and how the two <code>ops-scripts</code> UAA scripts in this repo fit in.</p>
+<blockquote>
+<p>Three is the baseline, not a ceiling. Tiles like TKGI, Concourse, and Healthwatch ship their own UAAs on top of these.</p>
+</blockquote>
+<h2 id="the-three-uaas">The three UAAs</h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Ops Manager's UAA</th>
+<th>BOSH Director's UAA</th>
+<th>CF/TAS Deployment's UAA</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Target URL</strong></td>
+<td><code>https://OPS-MAN-FQDN/uaa</code></td>
+<td><code>https://DIRECTOR-IP:8443</code></td>
+<td><code>https://uaa.SYSTEM-DOMAIN</code></td>
+</tr>
+<tr>
+<td><strong>Runs on</strong></td>
+<td>The Ops Manager VM</td>
+<td>The BOSH Director VM (deployed <em>by</em> Ops Manager)</td>
+<td>The <code>cf</code> deployment</td>
+</tr>
+<tr>
+<td><strong>What it controls</strong></td>
+<td>Who can log into Ops Manager, install/configure tiles, run <code>om</code> commands</td>
+<td>Who can run <code>bosh</code> CLI commands against the Director</td>
+<td>Who can <code>cf login</code>, use Apps Manager, push apps, manage orgs/spaces</td>
+</tr>
+<tr>
+<td><strong>Key scopes</strong></td>
+<td><code>opsman.admin</code>, <code>opsman.user</code></td>
+<td><code>bosh.admin</code></td>
+<td><code>cloud_controller.admin</code> / <code>.read</code> / <code>.write</code></td>
+</tr>
+<tr>
+<td><strong>Known clients</strong></td>
+<td><code>opsman</code>, <code>om-automation</code></td>
+<td><code>login</code>, <code>bosh_admin_client</code>, any CI client you add</td>
+<td><code>cf</code>, <code>admin</code>, <code>cf-mgmt</code></td>
+</tr>
+<tr>
+<td><strong>External auth (SAML/LDAP)</strong></td>
+<td>Supported — this is the SAML/Entra-backed one for platform operators</td>
+<td><strong>Not supported</strong> — always internal auth</td>
+<td>Supported — Entra ID groups map to <code>cloud_controller.*</code> scopes</td>
+</tr>
+<tr>
+<td><strong>SAML/Entra config location</strong></td>
+<td>Ops Manager Settings &gt; Authentication (see <code>TAS_Setup_Reference</code> Appendix B)</td>
+<td>n/a</td>
+<td>TAS tile &gt; Authentication and Enterprise SSO (see <code>TAS_Setup_Reference</code> Appendix A / A-1)</td>
+</tr>
+</tbody>
+</table>
+<p>If a <code>uaac</code> command isn't finding an account, client, or group mapping you expect, the first thing to check is which of these three you're actually targeted at (<code>uaac target</code> with no argument prints the current one).</p>
+<h2 id="where-to-find-admin-credentials">Where to find admin credentials</h2>
+<h3 id="ops-managers-uaa">Ops Manager's UAA</h3>
+<p><strong>If Ops Manager uses SAML/OIDC SSO</strong> (as this foundation does), there is no admin password to look up — authenticate through the SSO passcode flow instead. The resulting token carries <code>uaa.admin</code> and <code>clients.admin</code>, which is sufficient for every read-only investigation command below:</p>
+<pre><code class="language-cmd">uaac target https://OPS-MAN-FQDN/uaa --skip-ssl-validation
+uaac token sso get opsman -s ""
+REM Prompts for a passcode -- open https://OPS-MAN-FQDN/uaa/passcode in a browser,
+REM authenticate through Entra ID, and paste the passcode back at the prompt.</code></pre>
+<p>Confirm what you got with <code>uaac context</code> — look for <code>uaa.admin</code> in the <code>scope:</code> line.</p>
+<p><strong>If Ops Manager uses internal auth</strong>, use the owner/password grant with the Ops Manager admin account set during initial setup:</p>
+<pre><code class="language-cmd">uaac token owner get opsman -s ""
+REM User name: admin, Password: &lt;ops-manager-admin-password&gt;</code></pre>
+<p>The <code>om-automation</code> client (<code>GETTING-STARTED.md</code> Step 5) is <strong>not</strong> usable for this — it holds <code>opsman.admin</code> only, with no <code>scim.*</code> authority, so <code>uaac users</code> returns an insufficient scope error.</p>
+<h3 id="bosh-directors-uaa">BOSH Director's UAA</h3>
+<p>Credentials live in the BOSH Director tile — product slug <strong><code>p-bosh</code></strong>, not <code>director</code>. Confirm the slug on your foundation with <code>ops-scripts\om-command.bat &lt;foundation&gt; products</code>, then list and fetch:</p>
+<pre><code class="language-cmd">ops-scripts\om-command.bat &lt;foundation&gt; credential-references -p p-bosh
+ops-scripts\om-command.bat &lt;foundation&gt; credentials -p p-bosh -c .uaa_login_client_credentials
+ops-scripts\om-command.bat &lt;foundation&gt; credentials -p p-bosh -c .uaa_admin_user_credentials</code></pre>
+<p>Note <code>om credentials</code> always requires <code>-c</code>; <code>om credential-references</code> is the separate command that lists what's available. The same values appear in the Ops Manager UI under BOSH Director tile &gt; Credentials as <strong>Uaa Login Client Credentials</strong> and <strong>Uaa Admin User Credentials</strong>.</p>
+<pre><code class="language-cmd">uaac target https://DIRECTOR-IP:8443 --ca-cert /var/tempest/workspaces/default/root_ca_certificate
+uaac token owner get login -s &lt;UAA-LOGIN-CLIENT-PASSWORD&gt;
+REM User name: admin, Password: &lt;UAA-ADMIN-USER-PASSWORD&gt;</code></pre>
+<p>The Director IP is on the BOSH Director tile's Status tab. <code>bosh_admin_client</code> (<strong>Uaa Bosh Client Credentials</strong>, created when you tick "Provision an admin client in the Bosh UAA" during SAML/LDAP setup) holds <code>bosh.admin</code> only — fine for the <code>bosh</code> CLI, not sufficient for <code>uaac users</code>.</p>
+<h3 id="cftas-deployments-uaa">CF/TAS Deployment's UAA</h3>
+<p>Fetch the TAS tile's UAA admin client — the same credential used in the manual steps below, so nothing has to be typed in or stored by hand:</p>
+<pre><code class="language-cmd">ops-scripts\om-command.bat &lt;foundation&gt; credentials -p cf -c .uaa.admin_client_credentials</code></pre>
+<pre><code class="language-cmd">uaac target https://uaa.SYSTEM-DOMAIN --skip-ssl-validation
+uaac token client get admin -s &lt;ADMIN-CLIENT-SECRET&gt;</code></pre>
+<p>The <code>cf-mgmt</code> client also works here and carries <code>scim.read</code>, <code>scim.write</code>, and <code>uaa.admin</code> — created by hand following <code>ops-scripts\uaac\create-cf-mgmt-uaac-user.md</code>. Save the secret you choose somewhere durable, e.g. <code>env-creds\&lt;foundation&gt;\cf-mgmt-env.yml</code> (gitignored), matching the format <code>cf-mgmt-config</code> docs expect. Treat it as an admin credential: <code>uaa.admin</code> lets it create and modify clients and scopes, not just read.</p>
+<h2 id="investigating-whats-set-up-now">Investigating what's set up now</h2>
+<p>Re-target and re-authenticate between UAAs — a token from one won't work against another.</p>
+<p><strong>Listing users and their groups</strong> works identically against all three, once authenticated with a token holding <code>scim.read</code> or <code>uaa.admin</code>:</p>
+<pre><code class="language-cmd">uaac users --attributes userName,origin,groups.display
+uaac clients
+uaac client get &lt;CLIENT-ID&gt;</code></pre>
+<p><code>uaac client get &lt;CLIENT-ID&gt;</code> is the fastest way to answer "why did that token get insufficient scope" — it prints the client's actual authorities, which may have been narrowed since initial setup.</p>
+<h3 id="group-mappings">Group mappings</h3>
+<p>External group → scope mapping only applies to the two UAAs that support external auth:</p>
+<p><strong>CF/TAS deployment's UAA</strong> — Entra ID groups are mapped to <code>cloud_controller.*</code> scopes with <code>uaac group map</code>, which is what <code>TAS_Setup_Reference</code> Appendix A-1 section 3 and <code>ops-scripts\uaac\map-uaac-groups-admin-developer.md</code> set up. Inspect the live result with:</p>
+<pre><code class="language-cmd">uaac group map
+uaac group get cloud_controller.admin
+uaac user get USERNAME -a groups</code></pre>
+<p>Isolate SSO-linked accounts from internal ones — swap in your actual SAML origin name (this repo's <code>TAS_Setup_Reference</code> example, and <code>ops-scripts\uaac\map-uaac-groups-admin-developer.md</code>, both use <code>"Azure AD"</code>):</p>
+<pre><code class="language-cmd">uaac users --attributes userName,groups.display -q "origin eq \"saml\""</code></pre>
+<p><strong>Ops Manager's UAA</strong> — operator access is granted through the SAML group attribute and admin group name configured in Ops Manager's own Authentication settings (Appendix B), not by running <code>uaac group map</code> by hand. <code>uaac group map</code> and <code>uaac group get opsman.admin</code> still work for <em>inspecting</em> what's in effect.</p>
+<p><strong>BOSH Director's UAA</strong> — no external groups; users and clients are internal only, managed with <code>uaac user add</code> / <code>uaac client add</code> (see <code>TAS_Setup_Reference</code> on creating a <code>bosh.admin</code> CI client).</p>
+<h3 id="uaa-scopes-vs-cf-orgspace-roles">UAA scopes vs CF org/space roles</h3>
+<p>UAA-level scopes (<code>cloud_controller.admin</code>, etc.) are a different layer from CF-level org/space roles. A user can hold <code>cloud_controller.admin</code> and still show no orgs in <code>cf orgs</code> — that's expected; see the "Admin Privileges with cloud_controller.admin" note in <code>TAS_Setup_Reference</code> Appendix A-1. For the CF-level role layer, use <code>cf org-users</code> / <code>cf space-users</code>, or <code>cf-mgmt export-config</code> for a full point-in-time YAML snapshot (see <code>docs\installation\CF-MGMT-INSTALLATION.md</code>).</p>
+<h2 id="setting-things-up-manual-uaac-steps">Setting things up: manual uaac steps</h2>
+<h3 id="ops-scriptsuaaccreate-cf-mgmt-uaac-usermd-provision-the-cf-mgmt-client"><code>ops-scripts\uaac\create-cf-mgmt-uaac-user.md</code> — provision the cf-mgmt client</h3>
+<p>Creates the <code>cf-mgmt</code> UAA client with the authorities cf-mgmt needs (<code>cloud_controller.admin</code>, <code>scim.read</code>/<code>write</code>, <code>clients.*</code>, <code>uaa.admin</code>, <code>routing.router_groups.read</code>). Open the file and run each line by hand, substituting your system domain and admin client secret; pick your own <code>cf-mgmt</code> client secret and save it somewhere durable (e.g. <code>env-creds\&lt;foundation&gt;\cf-mgmt-env.yml</code>, gitignored).</p>
+<p>Full detail, including the <code>routing.router_groups.read</code> troubleshooting gotcha, is in <code>docs\installation\CF-MGMT-INSTALLATION.md</code>.</p>
+<h3 id="ops-scriptsuaacmap-uaac-groups-admin-developermd-map-entra-id-groups-to-uaa-scopes"><code>ops-scripts\uaac\map-uaac-groups-admin-developer.md</code> — map Entra ID groups to UAA scopes</h3>
+<p>Maps an admin Entra ID group's Object ID to <code>cloud_controller.admin</code>, and a developer group's Object ID to both <code>cloud_controller.read</code> and <code>cloud_controller.write</code>. The Object IDs and <code>--origin "Azure AD"</code> are written directly into the file — edit the GUIDs in the file itself if they change for a given foundation. (<code>env-creds\cf-groups.yml</code> is no longer used for this.)</p>
+<p>This is what makes the <code>saml_group:</code> entries in <code>cf-mgmt-config\production\*\spaceConfig.yml</code> actually resolve to real users — cf-mgmt authorizes a mapped group into a space's role, but UAA is what has to know the external group exists in the first place. Run <code>uaac group map</code> (above) afterward to confirm the mapping landed. Full detail is in <code>docs\installation\CF-MGMT-INSTALLATION.md</code>.</p>
+<h2 id="references">References</h2>
+<ul>
+<li><code>docs\installation\GETTING-STARTED.md</code> — UAAC install (Step 5) and the Ops Manager UAA <code>om-automation</code> client</li>
+<li><code>docs\installation\CF-MGMT-INSTALLATION.md</code> — full cf-mgmt install/bootstrap, both scripts in detail, troubleshooting</li>
+<li><code>technical notes\TAS_Setup_Reference_2026-07-22.docx</code> — Appendix A-1 (Entra ID group mapping), Appendix B / B-2 (Ops Manager SAML + OM CLI), Appendix D (cleaning up duplicate identity providers)</li>
+<li>cf-mgmt repo: <a href="https://github.com/vmware-tanzu-labs/cf-mgmt">https://github.com/vmware-tanzu-labs/cf-mgmt</a></li>
+<li>om CLI commands: <a href="https://github.com/pivotal-cf/om/blob/main/docs/README.md#commands">https://github.com/pivotal-cf/om/blob/main/docs/README.md#commands</a></li>
+</ul>
+<h2 id="debugging-federated-metadata-xml">debugging federated metadata xml</h2>
+<p>curl -o federationmetadata.xml "https://login.microsoftonline.com/224b9784-a475-4be4-af82-01ae85c097b8/federationmetadata/2007-06/federationmetadata.xml?appid=942f0bf2-a6da-4381-9894-f7e8ebeb9346"</p>
+<p>open the file federationmetadata.xml in vscode, click on the encoding at the bottom, save with encoding, but choose only utf-8 (not utf-8 with BOM)</p>
+</body>
+</html>
