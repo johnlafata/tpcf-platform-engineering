@@ -1,7 +1,0 @@
-[
-  {
-    "protocol": "tcp",
-    "destination": "<ENTERPRISE-SQL-SERVER-IP>",
-    "ports": "1433"
-  }
-]

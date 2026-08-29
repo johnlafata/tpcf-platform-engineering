@@ -2,7 +2,6 @@
 # config-backup/
 
 env-creds/*/om-env.yml
-env-creds/cf-groups.yml
 
 # Extracted configurations (contains credentials)
 # config-export/
@@ -16,10 +15,6 @@ env-creds/cf-groups.yml
 # Real per-foundation credential files (the -redacted templates are fine to commit)
 env-creds/**/om-env.yml
 env-creds/**/cf-mgmt-env.yml
-
-# Real cf-groups.yml (the -redacted template is fine to commit). Not per-foundation --
-# lives directly under env-creds/, shared across all environments.
-env-creds/cf-groups.yml
 
 # IDE and editor files
 .idea/
