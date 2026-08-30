@@ -69,6 +69,10 @@ cf org %ORG_NAME% >nul 2>&1
 if %ERRORLEVEL% NEQ 0 (
     echo === Org %ORG_NAME% does not exist, creating it ===
     cf create-org %ORG_NAME%
+    REM cf create-org can print OK and still return a nonzero exit code on
+    REM some CF CLI versions -- re-check the org's existence directly rather
+    REM than trusting create-org's own exit status.
+    cf org %ORG_NAME% >nul 2>&1
     if %ERRORLEVEL% NEQ 0 (
         echo === Failed to create org %ORG_NAME% ===
         exit /b 1
