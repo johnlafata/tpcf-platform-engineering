@@ -66,14 +66,18 @@ echo.
 
 echo === Checking org %ORG_NAME% ===
 cf org %ORG_NAME% >nul 2>&1
-if %ERRORLEVEL% NEQ 0 (
+if !ERRORLEVEL! NEQ 0 (
     echo === Org %ORG_NAME% does not exist, creating it ===
     cf create-org %ORG_NAME%
     REM cf create-org can print OK and still return a nonzero exit code on
     REM some CF CLI versions -- re-check the org's existence directly rather
-    REM than trusting create-org's own exit status.
+    REM than trusting create-org's own exit status. Note: !ERRORLEVEL! (delayed
+    REM expansion) is required here, not %ERRORLEVEL% -- this check is nested
+    REM inside a parenthesized block, and with delayed expansion enabled,
+    REM %ERRORLEVEL% would be substituted once at parse time of the whole
+    REM outer block (stale), not freshly after the "cf org" line above runs.
     cf org %ORG_NAME% >nul 2>&1
-    if %ERRORLEVEL% NEQ 0 (
+    if !ERRORLEVEL! NEQ 0 (
         echo === Failed to create org %ORG_NAME% ===
         exit /b 1
     )
@@ -83,7 +87,7 @@ if %ERRORLEVEL% NEQ 0 (
 
 echo === Ensuring org %ORG_NAME% is entitled to isolation segment %ISOLATION_SEGMENT% ===
 cf enable-org-isolation %ORG_NAME% %ISOLATION_SEGMENT%
-if %ERRORLEVEL% NEQ 0 (
+if !ERRORLEVEL! NEQ 0 (
     echo === Failed to enable isolation segment %ISOLATION_SEGMENT% on org %ORG_NAME% ===
     echo Confirm the isolation segment exists on this foundation ^(cf isolation-segments^)
     echo and that you have privileges to entitle it to an org.
@@ -92,26 +96,26 @@ if %ERRORLEVEL% NEQ 0 (
 
 echo === Creating spaces ===
 cf create-space %UI_SPACE% -o %ORG_NAME%
-if %ERRORLEVEL% NEQ 0 (
+if !ERRORLEVEL! NEQ 0 (
     echo === Failed to create space %UI_SPACE% ===
     exit /b 1
 )
 
 cf create-space %API_SPACE% -o %ORG_NAME%
-if %ERRORLEVEL% NEQ 0 (
+if !ERRORLEVEL! NEQ 0 (
     echo === Failed to create space %API_SPACE% ===
     exit /b 1
 )
 
 echo === Granting %SERVICE_ACCOUNT% SpaceDeveloper on both spaces ===
 cf set-space-role %SERVICE_ACCOUNT% %ORG_NAME% %UI_SPACE% SpaceDeveloper
-if %ERRORLEVEL% NEQ 0 (
+if !ERRORLEVEL! NEQ 0 (
     echo === Failed to set space role on %UI_SPACE% ===
     exit /b 1
 )
 
 cf set-space-role %SERVICE_ACCOUNT% %ORG_NAME% %API_SPACE% SpaceDeveloper
-if %ERRORLEVEL% NEQ 0 (
+if !ERRORLEVEL! NEQ 0 (
     echo === Failed to set space role on %API_SPACE% ===
     exit /b 1
 )
@@ -129,26 +133,31 @@ if /i "%DB_ACCESS_ARG%"=="yes" set DB_ACCESS=yes
 if /i "%DB_ACCESS%"=="yes" (
     echo === Configuring database access for %API_SPACE% ===
 
+    REM All four checks below use !ERRORLEVEL! (delayed expansion), not
+    REM %ERRORLEVEL% -- they're nested inside this outer "if /i ... (" block,
+    REM so with delayed expansion enabled, %ERRORLEVEL% would be frozen at
+    REM parse time of the whole block instead of read fresh after each
+    REM command, silently skipping real failures.
     cf target -o %ORG_NAME% -s %API_SPACE%
-    if %ERRORLEVEL% NEQ 0 (
+    if !ERRORLEVEL! NEQ 0 (
         echo === Failed to target %ORG_NAME%/%API_SPACE% ===
         exit /b 1
     )
 
     cf set-space-isolation-segment %API_SPACE% %ISOLATION_SEGMENT%
-    if %ERRORLEVEL% NEQ 0 (
+    if !ERRORLEVEL! NEQ 0 (
         echo === Failed to set isolation segment on %API_SPACE% ===
         exit /b 1
     )
 
     cf bind-security-group SQL-ACCESS-ASG %ORG_NAME% --lifecycle running --space %API_SPACE%
-    if %ERRORLEVEL% NEQ 0 (
+    if !ERRORLEVEL! NEQ 0 (
         echo === Failed to bind SQL-ACCESS-ASG ^(running^) to %API_SPACE% ===
         exit /b 1
     )
 
     cf bind-security-group SQL-ACCESS-ASG %ORG_NAME% --lifecycle staging --space %API_SPACE%
-    if %ERRORLEVEL% NEQ 0 (
+    if !ERRORLEVEL! NEQ 0 (
         echo === Failed to bind SQL-ACCESS-ASG ^(staging^) to %API_SPACE% ===
         exit /b 1
     )
