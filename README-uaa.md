@@ -75,7 +75,7 @@ uaac target https://uaa.SYSTEM-DOMAIN --skip-ssl-validation
 uaac token client get admin -s <ADMIN-CLIENT-SECRET>
 ```
 
-The `cf-mgmt` client also works here and carries `scim.read`, `scim.write`, and `uaa.admin` — created by hand following `ops-scripts\uaac\create-cf-mgmt-uaac-user.md`. Save the secret you choose somewhere durable, e.g. `env-creds\<foundation>\cf-mgmt-env.yml` (gitignored), matching the format `cf-mgmt-config` docs expect. Treat it as an admin credential: `uaa.admin` lets it create and modify clients and scopes, not just read.
+The `cf-mgmt` client also works here and carries `scim.read`, `scim.write`, and `uaa.admin` — created by hand following [`ops-scripts\uaac\create-cf-mgmt-uaac-user.md`](ops-scripts/uaac/create-cf-mgmt-uaac-user.md). Save the secret you choose somewhere durable, e.g. `env-creds\<foundation>\cf-mgmt-env.yml` (gitignored), matching the format `cf-mgmt-config` docs expect. Treat it as an admin credential: `uaa.admin` lets it create and modify clients and scopes, not just read.
 
 ## Investigating what's set up now
 
@@ -95,7 +95,7 @@ uaac client get <CLIENT-ID>
 
 External group → scope mapping only applies to the two UAAs that support external auth:
 
-**CF/TAS deployment's UAA** — Entra ID groups are mapped to `cloud_controller.*` scopes with `uaac group map`, which is what `TAS_Setup_Reference` Appendix A-1 section 3 and `ops-scripts\uaac\map-uaac-groups-admin-developer.md` set up. Inspect the live result with:
+**CF/TAS deployment's UAA** — Entra ID groups are mapped to `cloud_controller.*` scopes with `uaac group map`, which is what `TAS_Setup_Reference` Appendix A-1 section 3 and [`ops-scripts\uaac\map-uaac-groups-admin-developer.md`](ops-scripts/uaac/map-uaac-groups-admin-developer.md) set up. Inspect the live result with:
 
 ```cmd
 uaac group map
@@ -103,7 +103,7 @@ uaac group get cloud_controller.admin
 uaac user get USERNAME -a groups
 ```
 
-Isolate SSO-linked accounts from internal ones — swap in your actual SAML origin name (this repo's `TAS_Setup_Reference` example, and `ops-scripts\uaac\map-uaac-groups-admin-developer.md`, both use `"Azure AD"`):
+Isolate SSO-linked accounts from internal ones — swap in your actual SAML origin name (this repo's `TAS_Setup_Reference` example, and [`ops-scripts\uaac\map-uaac-groups-admin-developer.md`](ops-scripts/uaac/map-uaac-groups-admin-developer.md), both use `"Azure AD"`):
 
 ```cmd
 uaac users --attributes userName,groups.display -q "origin eq \"saml\""
@@ -119,13 +119,13 @@ UAA-level scopes (`cloud_controller.admin`, etc.) are a different layer from CF-
 
 ## Setting things up: manual uaac steps
 
-### `ops-scripts\uaac\create-cf-mgmt-uaac-user.md` — provision the cf-mgmt client
+### [`ops-scripts\uaac\create-cf-mgmt-uaac-user.md`](ops-scripts/uaac/create-cf-mgmt-uaac-user.md) — provision the cf-mgmt client
 
 Creates the `cf-mgmt` UAA client with the authorities cf-mgmt needs (`cloud_controller.admin`, `scim.read`/`write`, `clients.*`, `uaa.admin`, `routing.router_groups.read`). Open the file and run each line by hand, substituting your system domain and admin client secret; pick your own `cf-mgmt` client secret and save it somewhere durable (e.g. `env-creds\<foundation>\cf-mgmt-env.yml`, gitignored).
 
 Full detail, including the `routing.router_groups.read` troubleshooting gotcha, is in `docs\installation\CF-MGMT-INSTALLATION.md`.
 
-### `ops-scripts\uaac\map-uaac-groups-admin-developer.md` — map Entra ID groups to UAA scopes
+### [`ops-scripts\uaac\map-uaac-groups-admin-developer.md`](ops-scripts/uaac/map-uaac-groups-admin-developer.md) — map Entra ID groups to UAA scopes
 
 Maps an admin Entra ID group's Object ID to `cloud_controller.admin`, and a developer group's Object ID to both `cloud_controller.read` and `cloud_controller.write`. The Object IDs and `--origin "Azure AD"` are written directly into the file — edit the GUIDs in the file itself if they change for a given foundation. (`env-creds\cf-groups.yml` is no longer used for this.)
 

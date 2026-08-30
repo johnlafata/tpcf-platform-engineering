@@ -41,17 +41,51 @@ img { max-width: 100%; }
 </style>
 </head>
 <body>
-<p>REM This script is intended to be used as a guide for re-installing cf on a sandbox environment. It is not intended to be run as-is, but rather to be edited and customized as necessary for your specific environment and requirements.</p>
-<p>REM backup the installation ops-scripts\backup-foundation.bat sandbox</p>
-<p>REM Remove the old installation (if necessary) ops-scripts\om-command.bat sandbox delete-installation</p>
-<p>REM after edit and remove guids for resource groups in the director-config.yml, reconfigure the director ops-scripts\configure-director.bat sandbox config-backup\sandbox-20260528-143944\director-config.yml</p>
-<p>REM upload and stage cf tile REM upload cf product ops-scripts\upload-product.bat sandbox downloaded-products\srt-10.4.2-build.2.pivotal</p>
-<p>REM stage cf product (it was already uploaded) ops-scripts\stage-product.bat sandbox cf 10.4.2</p>
-<p>REM configure cf ops-scripts\om-command.bat sandbox configure-product /c config-backup\sandbox-20260525-111410\cf-config.yml</p>
-<p>REM restore foundation services and domain cp foundation-setup-redacted.bat foundation-setup.bat</p>
-<p>REM edit the foundation-setup.bat file to set add the api endppoint, admin password, and other necessary variables, then execute it to complete the installation. REM then execute foundation-setup.bat to complete the installation</p>
-<p>REM execute orgs and spaces setup cp create-orgs-spaces-redacted.bat create-orgs-spaces.bat</p>
-<p>REM edit the create-orgs-spaces.bat file to set add the api endppoint, admin password, and other necessary variables, then execute it to complete the installation. REM then execute create-orgs-spaces.bat to complete the installation</p>
-<p>REM stage and configure any other tiles</p>
+<h1 id="repaving-a-foundation">Repaving a Foundation</h1>
+<p>Repaving means tearing down and rebuilding an <strong>existing</strong> foundation from scratch — for example after a corrupted BOSH Director, a botched configuration change, or a full environment rebuild. It assumes the foundation already has configuration on file (from a prior <code>backup-foundation-config.bat</code> run, and <code>cf-mgmt-config\&lt;foundation&gt;\</code> if cf-mgmt is in use for it). If you're standing up a brand-new foundation instead, use the <a href="docs/installation/GETTING-STARTED.html">Getting Started Guide</a>.</p>
+<blockquote>
+<p>Every command below that references a <code>-redacted</code> file is a template: copy it to its real name and edit in your actual API endpoint, credentials, and paths before running. Don't run the <code>-redacted</code> files directly, and don't commit the edited copies.</p>
+</blockquote>
+<h2 id="1-back-up-the-current-installation">1. Back up the current installation</h2>
+<pre><code class="language-cmd">ops-scripts\backup-foundation-config.bat sandbox</code></pre>
+<p>This writes the current Director and product configs to <code>config-backup\sandbox-&lt;timestamp&gt;\</code>. You'll need the paths it prints in steps 3 and 4.</p>
+<h2 id="2-remove-the-old-installation">2. Remove the old installation</h2>
+<pre><code class="language-cmd">ops-scripts\om-command.bat sandbox delete-installation</code></pre>
+<h2 id="3-reconfigure-the-bosh-director">3. Reconfigure the BOSH Director</h2>
+<p>Before reapplying, open the backed-up <code>director-config.yml</code> and remove any resource-group GUIDs — they're specific to the old installation and will fail validation against the fresh one.</p>
+<pre><code class="language-cmd">ops-scripts\configure-director.bat sandbox config-backup\sandbox-&lt;timestamp&gt;\director-config.yml
+ops-scripts\apply-changes.bat sandbox p-bosh</code></pre>
+<h2 id="4-upload-stage-and-configure-the-cftas-tile">4. Upload, stage, and configure the CF/TAS tile</h2>
+<pre><code class="language-cmd">ops-scripts\upload-product.bat sandbox downloaded-products\srt-&lt;version&gt;.pivotal
+ops-scripts\stage-product.bat sandbox cf &lt;version&gt;
+ops-scripts\configure-product.bat sandbox cf config-backup\sandbox-&lt;timestamp&gt;\cf-config.yml
+ops-scripts\apply-changes.bat sandbox cf</code></pre>
+<p>Repeat this pattern for any other tiles the foundation runs (resource segments, Hub, platform-services, etc.), using each tile's own backed-up config file.</p>
+<h2 id="5-restore-shared-domains-service-access-and-feature-flags">5. Restore shared domains, service access, and feature flags</h2>
+<pre><code class="language-cmd">copy foundation-setup-redacted.bat foundation-setup.bat
+notepad foundation-setup.bat</code></pre>
+<p>Edit in the real API endpoint, admin credentials, and vanity domain, then run it:</p>
+<pre><code class="language-cmd">foundation-setup.bat</code></pre>
+<p>This is a thin wrapper around <code>cf enable-service-access</code>, <code>cf enable-feature-flag</code>, and <code>cf create-shared-domain</code> — see <a href="foundation-setup-redacted.bat"><code>foundation-setup-redacted.bat</code></a> for exactly what it does before running it.</p>
+<h2 id="6-restore-orgs-spaces-users-isolation-segments-and-asgs">6. Restore orgs, spaces, users, isolation segments, and ASGs</h2>
+<p>Redeploying wipes Cloud Controller's org/space database along with everything else, so this has to be rebuilt too. Which approach applies depends on whether this foundation already has cf-mgmt config on file:</p>
+<p><strong>If <code>cf-mgmt-config\&lt;foundation&gt;\</code> already exists for this foundation</strong> (the common case for a repave), re-apply the existing declarative config rather than recreating anything by hand — see <a href="docs/installation/CF-MGMT-INSTALLATION.html">cf-mgmt Installation Notes</a> for the <code>cf-mgmt apply</code> steps. That doc is also the canonical <strong>post-deployment configuration</strong> reference for orgs, spaces, users, isolation segments, and ASGs going forward.</p>
+<p><strong>If this foundation predates cf-mgmt, or you're rebuilding without it</strong>, fall back to the manual script:</p>
+<pre><code class="language-cmd">copy create-orgs-spaces-redacted.bat create-orgs-spaces.bat
+notepad create-orgs-spaces.bat</code></pre>
+<p>Edit in the real API endpoint, admin credentials, org/space names, and jenkins-sa password, then run it:</p>
+<pre><code class="language-cmd">create-orgs-spaces.bat</code></pre>
+<p>See <a href="create-orgs-spaces-redacted.bat"><code>create-orgs-spaces-redacted.bat</code></a> for the full list of orgs, spaces, role grants, and ASGs it creates.</p>
+<h2 id="7-recreate-the-cf-mgmt-uaa-client-and-re-map-entra-id-groups">7. Recreate the cf-mgmt UAA client and re-map Entra ID groups</h2>
+<p>A repave also wipes the CF/TAS deployment's UAA, so the <code>cf-mgmt</code> client and the Entra ID → scope group mappings need to be set up again from scratch. Neither is covered by cf-mgmt itself or by step 6:</p>
+<ul>
+<li><a href="ops-scripts/uaac/create-cf-mgmt-uaac-user.html"><code>ops-scripts\uaac\create-cf-mgmt-uaac-user.md</code></a> — provision the <code>cf-mgmt</code> UAA client</li>
+<li><a href="ops-scripts/uaac/map-uaac-groups-admin-developer.html"><code>ops-scripts\uaac\map-uaac-groups-admin-developer.md</code></a> — map Entra ID groups to <code>cloud_controller.*</code> scopes</li>
+</ul>
+<p>See <a href="README-uaa.html">README-uaa.md</a> for background on the three UAAs on a foundation and where to find admin credentials for each.</p>
+<h2 id="8-stage-and-configure-any-other-tiles">8. Stage and configure any other tiles</h2>
+<p>Repeat step 4's upload/stage/configure/apply pattern for anything else the foundation runs.</p>
+<h2 id="post-deployment-configuration">Post-deployment configuration</h2>
+<p>Once the foundation is back up, <a href="docs/installation/CF-MGMT-INSTALLATION.html">cf-mgmt Installation Notes</a> is the canonical reference for ongoing org/space/user/ASG management, and <a href="README-uaa.html">README-uaa.md</a> covers UAA accounts and group memberships in more depth.</p>
 </body>
 </html>
