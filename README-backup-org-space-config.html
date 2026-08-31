@@ -42,8 +42,8 @@ img { max-width: 100%; }
 </head>
 <body>
 <h1 id="backup-the-foundation-setup">backup the foundation setup</h1>
-<p>cf-mgmt export-config --config-dir cf-mgmt-config\production --system-domain &lt;sys-domain&gt; --user-id cf-mgmt --client-secret secret-from-uaac-client-add-command&gt;</p>
+<p>cf-mgmt export-config --config-dir cf-mgmt-config\production --system-domain &lt;sys-domain&gt; --user-id cf-mgmt --client-secret YOUR-SECRET</p>
 <h1 id="verify-the-configuration-restores-properly">verify the configuration restores properly</h1>
-<p>cf-mgmt apply ^ --config-dir=cf-mgmt-config\sandbox ^ --system-domain=SYSTEM-DOMAIN ^ --user-id=cf-mgmt ^ --client-secret=YOUR-SECRET ^ --peek</p>
+<p>cf-mgmt apply --config-dir=cf-mgmt-config\production --system-domain=SYSTEM-DOMAIN --user-id=cf-mgmt --client-secret=YOUR-SECRET --peek</p>
 </body>
 </html>
