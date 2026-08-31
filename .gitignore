@@ -12,6 +12,8 @@ env-creds/*/om-env.yml
 *.key
 *.crt
 
+cf-mgmt-config/*
+
 # Real per-foundation credential files (the -redacted templates are fine to commit)
 env-creds/**/om-env.yml
 env-creds/**/cf-mgmt-env.yml
