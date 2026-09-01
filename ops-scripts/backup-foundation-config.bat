@@ -34,10 +34,10 @@ call ops-scripts\om-command.bat %FOUNDATION% staged-products --format json > tem
 
 REM Note: Windows batch has limited JSON parsing. Consider using PowerShell or jq for Windows
 REM For simplicity, backup common products
-echo "make sure the list of products is correct - currently cf VMware-NSX-T p-healthwatch2-pas-exporter p-healthwatch2 p-isolation-segment"
+echo "make sure the list of products is correct - currently cf hub hub-tas-collector p-isolation-segment"
 echo "then REM out this next line"
 REM exit
-for %%p in (cf VMware-NSX-T p-healthwatch2-pas-exporter p-healthwatch2 p-isolation-segment) do (
+for %%p in (cf hub hub-tas-collector p-isolation-segment) do (
   echo Checking for %%p...
   call ops-scripts\om-command.bat %FOUNDATION% staged-config --include-credentials -p %%p -c > "%BACKUP_DIR%\%%p-config.yml" 2>nul
   if errorlevel 1 (
